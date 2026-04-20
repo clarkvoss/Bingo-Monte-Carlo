@@ -480,31 +480,34 @@ function checkBlackout(c, s) {
 }
 
 function checkTShape(c, s) {
-  // Top row (indices 0,5,10,15,20) + center column (indices 2,7,12,17,22)
+  // Column-major layout: col*5+row
+  // Top row (row 0): indices 0,5,10,15,20
+  // Center col (col N, col index 2): indices 10,11,12,13,14
   const topRow = [0,5,10,15,20];
-  const midCol = [2,7,12,17,22];
-  const needed = [...new Set([...topRow,...midCol])];
-  return needed.every(i => i === 12 || s.has(c[i]));
+  const midCol = [10,11,12,13,14];
+  return [...new Set([...topRow,...midCol])].every(i => i === 12 || s.has(c[i]));
 }
 
 function checkXShape(c, s) {
+  // Both diagonals — indices correct for column-major
   const d1 = [0,6,12,18,24];
   const d2 = [4,8,12,16,20];
   return [...new Set([...d1,...d2])].every(i => i === 12 || s.has(c[i]));
 }
 
 function checkFrame(c, s) {
-  // outer ring: row0, row4, col0, col4
-  const frame = [];
-  for(let r=0;r<5;r++) for(let col=0;col<5;col++) {
-    if(r===0||r===4||col===0||col===4) frame.push(col*5+r);
-  }
-  return [...new Set(frame)].every(i => i===12 || s.has(c[i]));
+  // Outer ring: row 0, row 4, col 0, col 4 (column-major: col*5+row)
+  const frame = new Set();
+  for(let r=0;r<5;r++) for(let col=0;col<5;col++)
+    if(r===0||r===4||col===0||col===4) frame.add(col*5+r);
+  return [...frame].every(i => i===12 || s.has(c[i]));
 }
 
 function checkPlus(c, s) {
-  const midRow = [2,7,12,17,22]; // row index 2 (middle row)
-  const midCol = [10,11,12,13,14]; // col index 2 (N column)
+  // Center row (row 2): indices 2,7,12,17,22
+  // Center col (col N, col index 2): indices 10,11,12,13,14
+  const midRow = [2,7,12,17,22];
+  const midCol = [10,11,12,13,14];
   return [...new Set([...midRow,...midCol])].every(i => i===12||s.has(c[i]));
 }
 
@@ -524,9 +527,9 @@ function getPatternCells() {
   if(m==='standard') return null; // handled differently
   if(m==='corners') return new Set([0,4,20,24]);
   if(m==='blackout') { const s=new Set(); for(let i=0;i<25;i++) s.add(i); return s; }
-  if(m==='tshape') return new Set([...new Set([0,5,10,15,20,2,7,12,17,22])]);
-  if(m==='xshape') return new Set([0,6,12,18,24,4,8,16,20]);
-  if(m==='plus') return new Set([2,7,12,17,22,10,11,13,14]);
+  if(m==='tshape') return new Set([0,5,10,11,12,13,14,15,20]); // top row + col N
+  if(m==='xshape') return new Set([0,4,6,8,12,16,18,20,24]);   // both diagonals
+  if(m==='plus') return new Set([2,7,10,11,12,13,14,17,22]);   // center row + col N
   if(m==='frame'){
     const s=new Set();
     for(let r=0;r<5;r++) for(let col=0;col<5;col++)
