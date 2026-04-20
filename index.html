@@ -236,6 +236,7 @@ let enterModes=[false,false,false];
 let activeCard=0;
 let calledSet=new Set();
 let autoSeq=[];
+let manualBase=new Set();
 let currentMode='standard';
 let simCache=[null,null,null]; // cached sim results per card
 
@@ -419,7 +420,7 @@ function renderActiveCard(){
         if(n>0)cell.addEventListener('click',()=>{
           if(calledSet.has(n))calledSet.delete(n);else calledSet.add(n);
           document.getElementById('callSlider').value=0;
-          autoSeq=[];
+          autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
           renderAll();
         });
       }
@@ -517,7 +518,7 @@ function renderCalledBalls(){
 function randomizeActiveCard(){
   enterModes[activeCard]=false;
   cards[activeCard]=generateCard();
-  calledSet=new Set();autoSeq=[];
+  calledSet=new Set();autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
   document.getElementById('callSlider').value=0;
   document.getElementById('sliderVal').textContent='0 called';
   updateEnterBtn();
@@ -526,7 +527,7 @@ function randomizeActiveCard(){
 
 function randomizeAll(){
   for(let i=0;i<NUM_CARDS;i++){cards[i]=generateCard();enterModes[i]=false;}
-  calledSet=new Set();autoSeq=[];
+  calledSet=new Set();autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
   document.getElementById('callSlider').value=0;
   document.getElementById('sliderVal').textContent='0 called';
   updateEnterBtn();
@@ -534,7 +535,7 @@ function randomizeAll(){
 }
 
 function resetCalled(){
-  calledSet=new Set();autoSeq=[];
+  calledSet=new Set();autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
   document.getElementById('callSlider').value=0;
   document.getElementById('sliderVal').textContent='0 called';
   renderAll();
@@ -609,13 +610,20 @@ function closePicker(){document.getElementById('pickerOverlay').style.display='n
 // --- Slider ---
 function handleSlider(val){
   const n=parseInt(val);
-  document.getElementById('sliderVal').textContent=`${n} called`;
-  if(autoSeq.length!==75){
-    const all=[];for(let i=1;i<=75;i++)all.push(i);
-    for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
-    autoSeq=all;
+  // First touch: snapshot current manual calls and build continuation sequence
+  if(autoSeq.length===0){
+    manualBase=new Set([...calledSet]);
+    const remaining=[];
+    for(let i=1;i<=75;i++) if(!manualBase.has(i)) remaining.push(i);
+    for(let i=remaining.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[remaining[i],remaining[j]]=[remaining[j],remaining[i]];}
+    autoSeq=remaining;
+    // Update slider max to remaining count
+    document.getElementById('callSlider').max=autoSeq.length;
   }
-  calledSet=new Set(autoSeq.slice(0,n));
+  // Rebuild calledSet = manual base + first n of the continuation sequence
+  calledSet=new Set([...manualBase,...autoSeq.slice(0,n)]);
+  const total=calledSet.size;
+  document.getElementById('sliderVal').textContent=`${total} called (${manualBase.size} manual + ${n} simulated)`;
   renderAll();
 }
 
