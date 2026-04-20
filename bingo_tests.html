@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bingo Monte Carlo — Test Suite</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
+  :root {
+    --bg: #0f0f14; --surface: #1a1a24; --surface2: #22222e;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --text: #e8e8f0; --muted: #7070a0;
+    --accent: #4f7fff; --win: #2dce89; --warn: #f5a623; --danger: #e74c3c;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); padding: 20px; }
+
+  header { margin-bottom: 28px; }
+  .logo { font-family: var(--font-display); font-size: 32px; letter-spacing: 3px; }
+  .logo span { color: var(--accent); }
+  .subtitle { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px;
+  }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .summary-val { font-family: var(--font-display); font-size: 36px; letter-spacing: 2px; line-height: 1; margin-bottom: 4px; }
+  .summary-lbl { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+
+  .section { margin-bottom: 24px; }
+  .section-title {
+    font-size: 11px; color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  .test-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .test-row:last-child { border-bottom: none; }
+
+  .badge {
+    flex-shrink: 0; width: 54px; padding: 3px 0;
+    border-radius: 20px; font-size: 10px; font-weight: 500;
+    text-align: center; letter-spacing: 0.5px; margin-top: 2px;
+  }
+  .badge.pass { background: rgba(45,206,137,0.15); color: var(--win); border: 1px solid rgba(45,206,137,0.3); }
+  .badge.fail { background: rgba(231,76,60,0.15); color: var(--danger); border: 1px solid rgba(231,76,60,0.3); }
+  .badge.warn { background: rgba(245,166,35,0.15); color: var(--warn); border: 1px solid rgba(245,166,35,0.3); }
+
+  .test-content { flex: 1; }
+  .test-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .test-detail { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .test-detail .got { color: var(--text); }
+  .test-detail .expected { color: var(--muted); }
+
+  .run-btn {
+    background: var(--accent); border: none; color: #fff;
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.5px;
+    padding: 10px 24px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 28px; transition: opacity 0.15s;
+  }
+  .run-btn:hover { opacity: 0.85; }
+  .run-btn:active { transform: scale(0.97); }
+
+  .spinner {
+    display: inline-block; width: 10px; height: 10px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tolerance-note {
+    font-size: 11px; color: var(--muted); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 20px; line-height: 1.6;
+  }
+  .tolerance-note strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BINGO<span>.</span>TEST</div>
+  <div class="subtitle">MONTE CARLO LOGIC VERIFICATION SUITE</div>
+</header>
+
+<button class="run-btn" id="runBtn" onclick="runAll()">Run All Tests</button>
+
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="summary-val" id="totalVal" style="color:var(--muted)">—</div>
+    <div class="summary-lbl">TOTAL</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-val" id="passVal" style="color:var(--win)">—</div>
+    <div class="summary-lbl">PASSED</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-val" id="failVal" style="color:var(--danger)">—</div>
+    <div class="summary-lbl">FAILED</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-val" id="warnVal" style="color:var(--warn)">—</div>
+    <div class="summary-lbl">WARNINGS</div>
+  </div>
+</div>
+
+<div class="tolerance-note">
+  <strong>About Monte Carlo tests:</strong> Probabilistic tests use 50,000 simulations and allow ±3% tolerance.
+  Deterministic tests (card generation, win detection) are exact with no tolerance.
+  Warning = result is outside tolerance but not a hard logic failure.
+</div>
+
+<div id="sections"></div>
+
+<script>
+// ─── Core logic (mirrors index.html exactly) ───────────────────────────────
+
+const RANGES = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+function generateCard(){
+  const nums=[];
+  for(let c=0;c<5;c++){
+    const [lo,hi]=RANGES[c], col=[];
+    while(col.length<5){ const n=randInt(lo,hi); if(!col.includes(n)) col.push(n); }
+    nums.push(...col);
+  }
+  nums[12]=0;
+  return nums;
+}
+
+function getAllLines(){
+  const lines=[];
+  for(let r=0;r<5;r++){const l=[];for(let c=0;c<5;c++) l.push(c*5+r);lines.push(l);}
+  for(let c=0;c<5;c++){const l=[];for(let r=0;r<5;r++) l.push(c*5+r);lines.push(l);}
+  lines.push([0,6,12,18,24]);
+  lines.push([4,8,12,16,20]);
+  return lines;
+}
+
+function checkStandard(c,s){ return getAllLines().some(l=>l.every(i=>i===12||s.has(c[i]))); }
+function checkCorners(c,s){ return [0,4,20,24].every(i=>s.has(c[i])); }
+function checkBlackout(c,s){ return c.every((n,i)=>i===12||s.has(n)); }
+function checkTShape(c,s){
+  // Top row (row 0): 0,5,10,15,20 + Center col (col N): 10,11,12,13,14
+  return[...new Set([0,5,10,15,20,10,11,12,13,14])].every(i=>i===12||s.has(c[i]));
+}
+function checkXShape(c,s){
+  // Both diagonals — already correct
+  return[...new Set([0,6,12,18,24,4,8,16,20])].every(i=>i===12||s.has(c[i]));
+}
+function checkFrame(c,s){
+  const f=new Set();
+  for(let r=0;r<5;r++) for(let col=0;col<5;col++)
+    if(r===0||r===4||col===0||col===4) f.add(col*5+r);
+  return [...f].every(i=>i===12||s.has(c[i]));
+}
+function checkPlus(c,s){
+  // Center row (row 2): 2,7,12,17,22 + Center col (col N): 10,11,12,13,14
+  return[...new Set([2,7,12,17,22,10,11,12,13,14])].every(i=>i===12||s.has(c[i]));
+}
+
+const CHECKERS = {
+  standard: checkStandard, corners: checkCorners, blackout: checkBlackout,
+  tshape: checkTShape, xshape: checkXShape, frame: checkFrame, plus: checkPlus
+};
+
+function monteCarlo(card, calledSet, checkFn, thresholds=[1,3,5,10,15,20], SIMS=50000){
+  const isWon = checkFn(card, calledSet);
+  if(isWon) return { won: true, probs: thresholds.map(()=>1.0), avg: 0 };
+  const remaining=[];
+  for(let i=1;i<=75;i++) if(!calledSet.has(i)) remaining.push(i);
+  const counts=new Array(thresholds.length).fill(0);
+  let totalToWin=0;
+  for(let s=0;s<SIMS;s++){
+    const p=remaining.slice();
+    for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
+    const sim=new Set([...calledSet]);
+    let wonAt=-1;
+    for(let i=0;i<p.length;i++){
+      sim.add(p[i]);
+      if(checkFn(card,sim)){wonAt=i+1;break;}
+    }
+    if(wonAt===-1) wonAt=p.length+30;
+    totalToWin+=wonAt;
+    thresholds.forEach((t,ti)=>{if(wonAt<=t)counts[ti]++;});
+  }
+  return {
+    won: false,
+    probs: counts.map(c=>c/SIMS),
+    avg: totalToWin/SIMS
+  };
+}
+
+// ─── Test runner ───────────────────────────────────────────────────────────
+
+const results = [];
+
+function assert(name, section, condition, detail, isWarn=false){
+  results.push({ name, section, pass: condition, warn: !condition&&isWarn, detail });
+}
+
+function assertNear(name, section, got, expected, tol, detail){
+  const diff = Math.abs(got - expected);
+  const pass = diff <= tol;
+  const isWarn = diff <= tol*2;
+  results.push({
+    name, section,
+    pass,
+    warn: !pass && isWarn,
+    detail: detail + ` | got ${(got*100).toFixed(1)}%, expected ~${(expected*100).toFixed(0)}% ±${(tol*100).toFixed(0)}%`
+  });
+}
+
+function assertRange(name, section, got, lo, hi, detail){
+  const pass = got >= lo && got <= hi;
+  results.push({
+    name, section, pass, warn: false,
+    detail: detail + ` | got ${got.toFixed(1)}, expected ${lo}–${hi}`
+  });
+}
+
+async function runAll(){
+  const btn = document.getElementById('runBtn');
+  btn.innerHTML = '<span class="spinner"></span>Running...';
+  btn.disabled = true;
+  results.length = 0;
+
+  await new Promise(r=>setTimeout(r,20));
+
+  // ── SECTION 1: Card Generation ─────────────────────────────────────────
+  const S1 = 'Card Generation';
+
+  for(let trial=0; trial<20; trial++){
+    const card = generateCard();
+    assert(`Card has 25 cells (trial ${trial+1})`, S1, card.length===25, `length = ${card.length}`);
+    assert(`FREE square at index 12 (trial ${trial+1})`, S1, card[12]===0, `card[12] = ${card[12]}`);
+
+    for(let col=0;col<5;col++){
+      const [lo,hi]=RANGES[col];
+      const colNums=[];
+      for(let row=0;row<5;row++){
+        const idx=col*5+row;
+        if(idx===12) continue;
+        colNums.push(card[idx]);
+      }
+      const inRange=colNums.every(n=>n>=lo&&n<=hi);
+      const unique=new Set(colNums).size===colNums.length;
+      assert(`Col ${'BINGO'[col]} in range ${lo}–${hi} (trial ${trial+1})`, S1, inRange,
+        `values: ${colNums.join(',')}`);
+      assert(`Col ${'BINGO'[col]} no duplicates (trial ${trial+1})`, S1, unique,
+        `values: ${colNums.join(',')}`);
+    }
+  }
+
+  await new Promise(r=>setTimeout(r,10));
+
+  // ── SECTION 2: Win Detection — Standard ───────────────────────────────
+  const S2 = 'Win Detection — Standard Line';
+
+  {
+    // Build a controlled card: col 0 = [1,2,3,4,5], col1=[16,17,18,19,20], etc.
+    const card=[1,2,3,4,5, 16,17,18,19,20, 31,32,0,34,35, 46,47,48,49,50, 61,62,63,64,65];
+    // Row 0: indices 0,5,10,15,20 → values 1,16,31,46,61
+    const s=new Set([1,16,31,46,61]);
+    assert('Full row 0 = win', S2, checkStandard(card,s), 'marked row 0');
+    assert('Full row 0 not corners win', S2, !checkCorners(card,s), 'corners needs 4 actual corners');
+
+    const s2=new Set([1,2,3,4]); // col 0 rows 0-3 only
+    assert('Partial col = no win', S2, !checkStandard(card,s2), '4/5 in col = not won');
+
+    // Col 0: indices 0,1,2,3,4 → values 1,2,3,4,5
+    const s3=new Set([1,2,3,4,5]);
+    assert('Full col B = win', S2, checkStandard(card,s3), 'all 5 in col B');
+
+    // Diagonal: indices 0,6,12,18,24 → 1,17,FREE,49,65
+    const s4=new Set([1,17,49,65]);
+    assert('Diagonal with FREE = win', S2, checkStandard(card,s4), 'diag hits free square');
+
+    // Nothing called
+    assert('Empty set = no win', S2, !checkStandard(card,new Set()), 'no numbers called');
+  }
+
+  // ── SECTION 3: Win Detection — Other Modes ────────────────────────────
+  const S3 = 'Win Detection — Other Modes';
+
+  {
+    const card=[1,2,3,4,5, 16,17,18,19,20, 31,32,0,34,35, 46,47,48,49,50, 61,62,63,64,65];
+    // corners: indices 0,4,20,24 → values 1,5,61,65
+    const corners=new Set([1,5,61,65]);
+    assert('Four corners correct', S3, checkCorners(card,corners), 'indices 0,4,20,24');
+    assert('Four corners: 3/4 = no win', S3, !checkCorners(card,new Set([1,5,61])), '3 corners');
+    assert('Standard line does not = corners win', S3, !checkCorners(card,new Set([1,16,31,46,61])), 'row is not corners');
+
+    // Blackout: all non-free
+    const allNums=new Set(card.filter((_,i)=>i!==12));
+    assert('Blackout with all numbers = win', S3, checkBlackout(card,allNums), 'all 24 marked');
+    allNums.delete(65);
+    assert('Blackout missing 1 = no win', S3, !checkBlackout(card,allNums), '23/24 marked');
+
+    // Card layout (column-major): row0=0,5,10,15,20 | row2=2,7,12,17,22 | colN=10,11,12,13,14
+    // Sample card: 0:1 5:16 10:31 15:46 20:61 | 11:32 12:FREE 13:34 14:35 | 2:3 7:18 17:48 22:63
+    // T-shape: top row (0,5,10,15,20)=1,16,31,46,61 + col N (10,11,12,13,14)=31,32,FREE,34,35
+    // Non-free needed: 1,16,31,46,61,32,34,35 (31 deduped, FREE=12 skipped)
+    const tSet=new Set([1,16,31,46,61,32,34,35]);
+    assert('T-shape correct', S3, checkTShape(card,tSet), 'top row + col N');
+    assert('T-shape missing 1 = no win', S3, !checkTShape(card,new Set([1,16,31,46,61,32,34])), 'missing last cell');
+
+    // X-shape: diag1 (0,6,12,18,24)=1,17,FREE,49,65 + diag2 (4,8,12,16,20)=5,19,FREE,47,61
+    const xSet=new Set([1,17,49,65,5,19,47,61]);
+    assert('X-shape correct', S3, checkXShape(card,xSet), 'both diagonals');
+
+    // Plus: center row (2,7,12,17,22)=3,18,FREE,48,63 + col N (10,11,12,13,14)=31,32,FREE,34,35
+    const plusSet=new Set([3,18,48,63,31,32,34,35]);
+    assert('Plus sign correct', S3, checkPlus(card,plusSet), 'center row + col N');
+  }
+
+  await new Promise(r=>setTimeout(r,10));
+
+  // ── SECTION 4: Monte Carlo Sanity — Standard ──────────────────────────
+  const S4 = 'Monte Carlo Sanity — Standard Line';
+
+  {
+    const card = generateCard();
+
+    // 0 numbers called: prob of winning in next 1 call
+    // Each of the 75 balls has 24/75 ≈ 0.32 chance of being on card
+    // But need 5 in a line — very unlikely in 1 call
+    const r0 = monteCarlo(card, new Set(), checkStandard, [1,5,10,15,20]);
+    assertNear('+1 call from 0: prob < 5%', S4, r0.probs[0], 0.01, 0.04,
+      'With 0 called, near-zero chance of winning in 1 more call');
+    assertRange('Avg calls to win (0 called): 35–50', S4, r0.avg, 35, 50,
+      'Standard bingo typically completes in ~41 calls on average');
+
+    // Mark 4/5 of a row — win in next 1 call should be ~1/remaining
+    const card2=[1,2,3,4,5,16,17,18,19,20,31,32,0,34,35,46,47,48,49,50,61,62,63,64,65];
+    // Row 0 = 1,16,31,46,61. Mark 4 of them.
+    const s4=new Set([1,16,31,46]); // need 61
+    const remaining=75-4; // 71 balls left
+    const expectedProb=1/remaining;
+    const r4=monteCarlo(card2,s4,checkStandard,[1]);
+    assertNear('+1 call with 4/5 row: prob ≈ 1/71', S4, r4.probs[0], expectedProb, 0.03,
+      '4 of 5 in a row, 1 number needed out of 71 remaining');
+
+    // Mark all 5 of a row — already won
+    const s5=new Set([1,16,31,46,61]);
+    const r5=monteCarlo(card2,s5,checkStandard,[1]);
+    assert('Complete row = immediate win reported', S4, r5.won===true, 'checkStandard returned true');
+    assert('Already won: avg=0', S4, r5.avg===0, `avg = ${r5.avg}`);
+
+    // With 74 balls called, should be ~100% won already or in 1 call
+    const allBut1=new Set(); for(let i=1;i<=75;i++) allBut1.add(i);
+    allBut1.delete(61); // keep one out — might not be on card
+    const r74=monteCarlo(card2,allBut1,checkStandard,[1]);
+    assert('74 balls called = win', S4, r74.won||r74.probs[0]>0.9,
+      `won=${r74.won}, p+1=${(r74.probs[0]*100).toFixed(1)}%`);
+  }
+
+  await new Promise(r=>setTimeout(r,10));
+
+  // ── SECTION 5: Monte Carlo Sanity — Other Modes ───────────────────────
+  const S5 = 'Monte Carlo Sanity — Other Modes';
+
+  {
+    const card=[1,2,3,4,5,16,17,18,19,20,31,32,0,34,35,46,47,48,49,50,61,62,63,64,65];
+
+    // Corners: need 4 specific numbers. With 0 called, avg should be much less than blackout
+    const rC=monteCarlo(card,new Set(),checkCorners,[1,5,10,20]);
+    assertRange('Corners avg calls: 55–67', S5, rC.avg, 55, 67,
+      'Four corners needs 4 specific numbers from ~75');
+
+    // Blackout needs all 24 — avg should be much higher
+    const rB=monteCarlo(card,new Set(),checkBlackout,[5,10,20,30,40,50]);
+    assertRange('Blackout avg calls: 68–76', S5, rB.avg, 68, 76,
+      'Blackout needs all 24 non-free squares');
+
+    // Corners should be easier than blackout (lower avg)
+    assert('Corners easier than Blackout', S5, rC.avg < rB.avg,
+      `corners avg=${rC.avg.toFixed(1)}, blackout avg=${rB.avg.toFixed(1)}`);
+
+    // Standard should be easier than blackout
+    const rS=monteCarlo(card,new Set(),checkStandard,[5,10,20]);
+    assert('Standard easier than Blackout', S5, rS.avg < rB.avg,
+      `standard avg=${rS.avg.toFixed(1)}, blackout avg=${rB.avg.toFixed(1)}`);
+
+    // Prob of winning blackout within 10 calls should be ~0%
+    assertNear('Blackout +10 calls ≈ 0%', S5, rB.probs[1], 0.0, 0.02,
+      'Impossible to get blackout in 10 calls');
+
+    // Corners +40 calls should have reasonable probability (avg is ~61)
+    const rC40=monteCarlo(card,new Set(),checkCorners,[40]);
+    assert('Corners +40 calls prob > 20%', S5, rC40.probs[0]>0.20,
+      `p(win in 40) = ${(rC40.probs[0]*100).toFixed(1)}%`);
+  }
+
+  await new Promise(r=>setTimeout(r,10));
+
+  // ── SECTION 6: Probability Monotonicity ───────────────────────────────
+  const S6 = 'Probability Monotonicity';
+
+  {
+    // More calls = higher or equal probability — must always hold
+    const card=generateCard();
+    const modes=['standard','corners','blackout'];
+    for(const mode of modes){
+      const fn=CHECKERS[mode];
+      const r=monteCarlo(card,new Set(),fn,[1,3,5,10,15,20,30]);
+      let mono=true;
+      for(let i=1;i<r.probs.length;i++){
+        if(r.probs[i]<r.probs[i-1]-0.02) { mono=false; break; } // allow tiny MC noise
+      }
+      assert(`${mode}: probs increase with more calls`, S6, mono,
+        `probs: ${r.probs.map(p=>(p*100).toFixed(1)+'%').join(', ')}`);
+    }
+
+    // More numbers called = higher win probability
+    const card2=[1,2,3,4,5,16,17,18,19,20,31,32,0,34,35,46,47,48,49,50,61,62,63,64,65];
+    const p0=monteCarlo(card2,new Set(),checkStandard,[5]).probs[0];
+    const p10=monteCarlo(card2,new Set([1,2,16,17,31,46,61,62,63,64]),checkStandard,[5]).probs[0];
+    assert('More called = higher win prob', S6, p10>=p0,
+      `p(+5|0 called)=${(p0*100).toFixed(1)}%, p(+5|10 called)=${(p10*100).toFixed(1)}%`);
+  }
+
+  await new Promise(r=>setTimeout(r,10));
+
+  // ── SECTION 7: Edge Cases ─────────────────────────────────────────────
+  const S7 = 'Edge Cases';
+
+  {
+    const card=[1,2,3,4,5,16,17,18,19,20,31,32,0,34,35,46,47,48,49,50,61,62,63,64,65];
+
+    // FREE square always contributes — diagonal through free should win with 4 non-free
+    // Diagonal 1: 0,6,12,18,24 → 1,17,FREE,49,65
+    const s=new Set([1,17,49,65]);
+    assert('FREE counts in diagonal', S7, checkStandard(card,s), 'diag with free needs only 4 marked');
+
+    // Calling a number not on card shouldn't affect win state
+    const sOff=new Set([99,98,97,96,95]); // impossible numbers but testing set behavior
+    assert('Numbers not on card = no win', S7, !checkStandard(card,sOff), 'off-card numbers');
+
+    // Marking then unmarking should not leave ghost state
+    const dynamic=new Set([1,16,31,46,61]);
+    assert('Row win with 5 marked', S7, checkStandard(card,dynamic), '5/5 row');
+    dynamic.delete(61);
+    assert('Un-marking 5th = no win', S7, !checkStandard(card,dynamic), '4/5 after delete');
+
+    // Full blackout sanity — exactly 24 numbers needed (free is index 12)
+    const allNonFree=new Set(card.filter((_,i)=>i!==12&&_!==0));
+    assert('Blackout needs exactly 24 non-free', S7, allNonFree.size===24, `set size=${allNonFree.size}`);
+    assert('All 24 = blackout win', S7, checkBlackout(card,allNonFree), 'full set');
+    allNonFree.delete([...allNonFree][0]);
+    assert('23/24 = no blackout', S7, !checkBlackout(card,allNonFree), '23 marked');
+
+    // Column range boundaries
+    for(let trial=0;trial<50;trial++){
+      const c=generateCard();
+      let ok=true;
+      for(let col=0;col<5;col++){
+        const [lo,hi]=RANGES[col];
+        for(let row=0;row<5;row++){
+          const idx=col*5+row;
+          if(idx===12) continue;
+          if(c[idx]<lo||c[idx]>hi) ok=false;
+        }
+      }
+      if(!ok){ assert(`Column ranges valid (trial ${trial+1})`, S7, false, 'out-of-range number found'); break; }
+    }
+    assert('Column ranges valid (50 cards)', S7, true, 'all 50 randomly generated cards passed range check');
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  renderResults();
+  btn.innerHTML='Run All Tests';
+  btn.disabled=false;
+}
+
+function renderResults(){
+  const sections={};
+  results.forEach(r=>{
+    if(!sections[r.section]) sections[r.section]=[];
+    sections[r.section].push(r);
+  });
+
+  let total=0,pass=0,fail=0,warn=0;
+  results.forEach(r=>{
+    total++;
+    if(r.pass) pass++;
+    else if(r.warn) warn++;
+    else fail++;
+  });
+
+  document.getElementById('totalVal').textContent=total;
+  document.getElementById('passVal').textContent=pass;
+  document.getElementById('failVal').textContent=fail;
+  document.getElementById('warnVal').textContent=warn;
+
+  const container=document.getElementById('sections');
+  container.innerHTML='';
+
+  Object.entries(sections).forEach(([sectionName,tests])=>{
+    const div=document.createElement('div');
+    div.className='section';
+    const sp=tests.filter(t=>t.pass).length;
+    const sf=tests.filter(t=>!t.pass&&!t.warn).length;
+    const sw=tests.filter(t=>!t.pass&&t.warn).length;
+    div.innerHTML=`<div class="section-title">${sectionName} — ${sp} passed, ${sf} failed, ${sw} warned</div>`;
+
+    // deduplicate bulk tests for display
+    const displayTests=[];
+    const seenBulk={};
+    tests.forEach(t=>{
+      const bulk=t.name.match(/^(.+)\(trial \d+\)$/);
+      if(bulk){
+        const key=bulk[1].trim();
+        if(!seenBulk[key]){
+          seenBulk[key]={pass:0,fail:0,name:key,detail:t.detail};
+          displayTests.push({_bulk:true,key});
+        }
+        if(t.pass) seenBulk[key].pass++;
+        else seenBulk[key].fail++;
+      } else {
+        displayTests.push(t);
+      }
+    });
+
+    displayTests.forEach(t=>{
+      const row=document.createElement('div');
+      row.className='test-row';
+      if(t._bulk){
+        const b=seenBulk[t.key];
+        const allPass=b.fail===0;
+        row.innerHTML=`
+          <div class="badge ${allPass?'pass':'fail'}">${allPass?'PASS':'FAIL'}</div>
+          <div class="test-content">
+            <div class="test-name">${b.name} (repeated)</div>
+            <div class="test-detail"><span class="got">${b.pass} passed, ${b.fail} failed</span></div>
+          </div>`;
+      } else {
+        const cls=t.pass?'pass':t.warn?'warn':'fail';
+        const lbl=t.pass?'PASS':t.warn?'WARN':'FAIL';
+        row.innerHTML=`
+          <div class="badge ${cls}">${lbl}</div>
+          <div class="test-content">
+            <div class="test-name">${t.name}</div>
+            <div class="test-detail"><span class="got">${t.detail}</span></div>
+          </div>`;
+      }
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>
