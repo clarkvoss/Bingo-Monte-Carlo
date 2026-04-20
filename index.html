@@ -9,396 +9,175 @@
 <meta name="theme-color" content="#0f0f14">
 <title>Bingo Monte Carlo</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
+:root {
+  --bg:#0f0f14; --surface:#1a1a24; --surface2:#22222e;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+  --text:#e8e8f0; --muted:#7070a0;
+  --accent:#4f7fff; --accent2:#7b5ea7;
+  --win:#2dce89; --warn:#f5a623; --danger:#e74c3c;
+  --radius:10px;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden;padding-bottom:calc(env(safe-area-inset-bottom) + 60px);}
 
-  :root {
-    --bg: #0f0f14;
-    --surface: #1a1a24;
-    --surface2: #22222e;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --text: #e8e8f0;
-    --muted: #7070a0;
-    --accent: #4f7fff;
-    --accent2: #7b5ea7;
-    --win: #2dce89;
-    --warn: #f5a623;
-    --danger: #e74c3c;
-    --radius: 10px;
-    --font-display: 'Bebas Neue', sans-serif;
-    --font-mono: 'DM Mono', monospace;
-  }
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10;}
+.logo{font-family:var(--font-display);font-size:26px;letter-spacing:2px;color:var(--text);line-height:1;}
+.logo span{color:var(--accent);}
+.sim-badge{font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;letter-spacing:0.5px;}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+main{padding:14px 16px;max-width:480px;margin:0 auto;}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-mono);
-    min-height: 100vh;
-    overflow-x: hidden;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+/* Card tabs */
+.card-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+.card-tab{padding:10px 6px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);cursor:pointer;text-align:center;transition:all 0.14s;position:relative;}
+.card-tab.active{border-color:var(--accent);background:rgba(79,127,255,0.1);}
+.card-tab.won{border-color:var(--win);background:rgba(45,206,137,0.1);}
+.tab-label{font-family:var(--font-display);font-size:18px;letter-spacing:1px;color:var(--text);}
+.tab-prob{font-size:11px;color:var(--muted);margin-top:2px;}
+.tab-badge{position:absolute;top:-6px;right:-4px;background:var(--warn);color:#000;font-size:9px;font-weight:500;padding:2px 6px;border-radius:10px;letter-spacing:0.3px;}
+.tab-badge.won-badge{background:var(--win);}
 
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
+/* Summary strip */
+.summary-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+.strip-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;}
+.strip-card.active{border-color:var(--accent);}
+.strip-card.won{border-color:var(--win);}
+.strip-pct{font-family:var(--font-display);font-size:20px;letter-spacing:1px;color:var(--muted);}
+.strip-pct.hot{color:var(--win);}
+.strip-lbl{font-size:9px;color:var(--muted);margin-top:1px;letter-spacing:0.4px;}
 
-  .logo {
-    font-family: var(--font-display);
-    font-size: 28px;
-    letter-spacing: 2px;
-    color: var(--text);
-    line-height: 1;
-  }
-  .logo span { color: var(--accent); }
+/* Mode scroll */
+.mode-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-bottom:14px;}
+.mode-scroll::-webkit-scrollbar{display:none;}
+.mode-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:0.5px;transition:all 0.15s;white-space:nowrap;}
+.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
 
-  .sim-badge {
-    font-size: 10px;
-    color: var(--muted);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 10px;
-    letter-spacing: 0.5px;
-  }
+/* Card grid */
+.card-wrap{margin-bottom:12px;}
+.pattern-label{font-size:11px;color:var(--muted);text-align:center;margin-bottom:6px;letter-spacing:0.5px;}
+.bingo-header{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:4px;}
+.col-label{background:var(--accent);color:#fff;font-family:var(--font-display);font-size:20px;letter-spacing:2px;text-align:center;padding:5px 0;border-radius:7px;}
+.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.12s;user-select:none;}
+.cell:active{transform:scale(0.93);}
+.cell.called{background:var(--accent);border-color:var(--accent);color:#fff;}
+.cell.free{background:var(--surface2);color:var(--muted);font-size:9px;cursor:default;}
+.cell.win-line{background:var(--win);border-color:var(--win);color:#fff;}
+.cell.highlight-pattern{border-color:rgba(79,127,255,0.5);background:rgba(79,127,255,0.12);}
+.cell.empty-enter{border:1.5px dashed var(--accent);color:var(--accent);font-size:11px;}
 
-  main { padding: 16px 20px; max-width: 480px; margin: 0 auto; }
+/* Buttons */
+.btn-row{display:flex;gap:6px;margin-bottom:14px;}
+.btn{flex:1;padding:9px 6px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:0.5px;transition:all 0.14s;}
+.btn:active{transform:scale(0.97);background:var(--surface2);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.danger-btn{border-color:var(--danger);color:var(--danger);}
+.enter-hint{font-size:11px;color:var(--accent);text-align:center;margin-bottom:8px;letter-spacing:0.5px;}
 
-  /* Game mode selector */
-  .mode-scroll {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-    margin-bottom: 20px;
-  }
-  .mode-scroll::-webkit-scrollbar { display: none; }
+/* Picker */
+.picker-num{padding:12px 4px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--font-mono);font-size:15px;font-weight:500;text-align:center;cursor:pointer;transition:background 0.1s;}
+.picker-num:active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.picker-num.used{opacity:0.25;pointer-events:none;}
 
-  .mode-btn {
-    flex-shrink: 0;
-    padding: 7px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border2);
-    background: var(--surface);
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .mode-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
+/* Slider */
+.slider-section{margin-bottom:14px;}
+.slider-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.slider-title{font-size:11px;color:var(--muted);letter-spacing:0.5px;}
+.slider-val{font-size:13px;font-weight:500;color:var(--accent);}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
-  /* Card */
-  .card-wrap { margin-bottom: 20px; }
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+.stat-val{font-family:var(--font-display);font-size:32px;letter-spacing:2px;line-height:1;color:var(--accent);margin-bottom:3px;}
+.stat-val.won{color:var(--win);}
+.stat-lbl{font-size:9px;color:var(--muted);letter-spacing:0.5px;}
 
-  .bingo-header {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
-    margin-bottom: 4px;
-  }
-  .col-label {
-    background: var(--accent);
-    color: #fff;
-    font-family: var(--font-display);
-    font-size: 22px;
-    letter-spacing: 2px;
-    text-align: center;
-    padding: 6px 0;
-    border-radius: 8px;
-  }
+/* Prob bars */
+.prob-section{margin-bottom:14px;}
+.section-title{font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;}
+.prob-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.prob-label{font-size:11px;color:var(--muted);min-width:54px;}
+.bar-bg{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.35s cubic-bezier(.4,0,.2,1);}
+.bar-fill.high{background:var(--win);}
+.bar-fill.low{background:var(--accent2);}
+.prob-pct{font-size:11px;font-weight:500;min-width:34px;text-align:right;color:var(--text);}
 
-  .bingo-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
-  }
+/* Lines */
+.lines-section{margin-bottom:14px;}
+.line-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.line-name{font-size:10px;color:var(--muted);min-width:44px;}
+.line-dots{display:flex;gap:3px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);}
+.dot.filled{background:var(--accent);border-color:var(--accent);}
+.dot.filled.win{background:var(--win);border-color:var(--win);}
 
-  .cell {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 500;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    cursor: pointer;
-    transition: all 0.12s;
-    position: relative;
-    overflow: hidden;
-  }
-  .cell:active { transform: scale(0.94); }
+/* Win banner */
+.win-banner{background:rgba(45,206,137,0.08);border:1px solid var(--win);border-radius:var(--radius);padding:12px;text-align:center;margin-bottom:14px;display:none;}
+.win-banner.show{display:block;}
+.win-banner-title{font-family:var(--font-display);font-size:28px;letter-spacing:4px;color:var(--win);}
+.win-banner-sub{font-size:10px;color:var(--muted);margin-top:3px;}
 
-  .cell.called {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
-  .cell.free {
-    background: var(--surface2);
-    color: var(--muted);
-    font-size: 10px;
-    cursor: default;
-  }
-  .cell.win-line {
-    background: var(--win);
-    border-color: var(--win);
-    color: #fff;
-  }
-  .cell.hot {
-    border-color: var(--warn);
-  }
-  .cell.highlight-pattern {
-    border-color: rgba(79,127,255,0.6);
-    background: rgba(79,127,255,0.15);
-  }
+/* Called balls */
+.called-section{margin-bottom:14px;}
+.called-balls{display:flex;flex-wrap:wrap;gap:5px;min-height:28px;}
+.ball{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;border:1px solid var(--accent);color:var(--accent);background:rgba(79,127,255,0.1);}
 
-  /* Pattern overlay hint */
-  .pattern-label {
-    font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-    margin-bottom: 8px;
-    letter-spacing: 0.5px;
-  }
-
-  /* Buttons row */
-  .btn-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .btn {
-    flex: 1;
-    padding: 10px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border2);
-    background: var(--surface);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.14s;
-  }
-  .btn:active { transform: scale(0.97); background: var(--surface2); }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  /* Slider */
-  .slider-section { margin-bottom: 20px; }
-  .slider-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .slider-title { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
-  .slider-val { font-size: 14px; font-weight: 500; color: var(--accent); }
-
-  input[type=range] {
-    width: 100%;
-    accent-color: var(--accent);
-    height: 4px;
-    cursor: pointer;
-  }
-
-  /* Stats */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    text-align: center;
-  }
-  .stat-val {
-    font-family: var(--font-display);
-    font-size: 36px;
-    letter-spacing: 2px;
-    line-height: 1;
-    color: var(--accent);
-    margin-bottom: 4px;
-  }
-  .stat-val.won { color: var(--win); }
-  .stat-lbl { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; line-height: 1.4; }
-
-  /* Prob bars */
-  .prob-section { margin-bottom: 20px; }
-  .section-title {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-    text-transform: uppercase;
-  }
-  .prob-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 9px;
-  }
-  .prob-label { font-size: 11px; color: var(--muted); min-width: 54px; }
-  .bar-bg {
-    flex: 1;
-    height: 6px;
-    background: var(--surface2);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: var(--accent);
-    transition: width 0.35s cubic-bezier(.4,0,.2,1);
-  }
-  .bar-fill.high { background: var(--win); }
-  .bar-fill.low { background: var(--accent2); }
-  .prob-pct { font-size: 12px; font-weight: 500; min-width: 36px; text-align: right; color: var(--text); }
-
-  /* Lines progress */
-  .lines-section { margin-bottom: 20px; }
-  .line-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-  .line-name { font-size: 10px; color: var(--muted); min-width: 44px; }
-  .line-dots { display: flex; gap: 3px; }
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-  }
-  .dot.filled { background: var(--accent); border-color: var(--accent); }
-  .dot.filled.win { background: var(--win); border-color: var(--win); }
-  .line-status { font-size: 10px; margin-left: auto; }
-
-  /* Win banner */
-  .win-banner {
-    background: linear-gradient(135deg, rgba(45,206,137,0.15), rgba(45,206,137,0.05));
-    border: 1px solid var(--win);
-    border-radius: var(--radius);
-    padding: 14px;
-    text-align: center;
-    margin-bottom: 20px;
-    display: none;
-  }
-  .win-banner.show { display: block; }
-  .win-banner-title {
-    font-family: var(--font-display);
-    font-size: 32px;
-    letter-spacing: 4px;
-    color: var(--win);
-  }
-  .win-banner-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-  /* Called balls */
-  .called-section { margin-bottom: 20px; }
-  .called-balls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    min-height: 32px;
-  }
-  .ball {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 500;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    background: rgba(79,127,255,0.1);
-  }
-
-  .info-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.7;
-    margin-bottom: 20px;
-  }
-  .info-box strong { color: var(--text); }
-
-  .spinner {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border: 2px solid var(--border2);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    margin-right: 6px;
-    vertical-align: middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+.info-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:11px;color:var(--muted);line-height:1.7;}
+.info-box strong{color:var(--text);}
 </style>
 </head>
 <body>
-
 <header>
   <div class="logo">BINGO<span>.</span>ODDS</div>
   <div class="sim-badge">10K MONTE CARLO</div>
 </header>
 
 <main>
-
-  <!-- Game Mode -->
+  <!-- Game mode -->
   <div class="mode-scroll" id="modeScroll"></div>
 
-  <!-- Card -->
+  <!-- Card tabs -->
+  <div class="card-tabs" id="cardTabs"></div>
+
+  <!-- Summary strip -->
+  <div class="summary-strip" id="summaryStrip"></div>
+
+  <!-- Active card -->
   <div class="card-wrap">
     <div id="patternLabel" class="pattern-label"></div>
     <div class="bingo-header">
-      <div class="col-label">B</div>
-      <div class="col-label">I</div>
-      <div class="col-label">N</div>
-      <div class="col-label">G</div>
-      <div class="col-label">O</div>
+      <div class="col-label">B</div><div class="col-label">I</div><div class="col-label">N</div><div class="col-label">G</div><div class="col-label">O</div>
     </div>
     <div class="bingo-grid" id="cardGrid"></div>
   </div>
 
+  <!-- Buttons -->
   <div class="btn-row">
-    <button class="btn primary" onclick="randomizeCard()">New Card</button>
-    <button class="btn" onclick="resetCalled()">Reset</button>
+    <button class="btn primary" id="enterBtn" onclick="startEnterMode()">Enter Card</button>
+    <button class="btn" onclick="randomizeActiveCard()">Random</button>
+    <button class="btn" onclick="resetCalled()">Reset All</button>
   </div>
 
-  <!-- Slider -->
+  <!-- Picker -->
+  <div id="pickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px 18px 0 0;padding:18px;width:100%;max-width:480px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span id="pickerTitle" style="font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--text);"></span>
+        <button onclick="closePicker()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font-mono);font-size:11px;padding:5px 10px;cursor:pointer;">Cancel</button>
+      </div>
+      <div id="pickerGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;max-height:250px;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);"></div>
+    </div>
+  </div>
+
+  <!-- Slider — shared across all cards -->
   <div class="slider-section">
     <div class="slider-header">
-      <span class="slider-title">SIMULATE CALLS</span>
+      <span class="slider-title">CALLED NUMBERS</span>
       <span class="slider-val" id="sliderVal">0 called</span>
     </div>
     <input type="range" min="0" max="74" value="0" id="callSlider" oninput="handleSlider(this.value)">
@@ -410,142 +189,62 @@
     <div class="win-banner-sub" id="winBannerSub"></div>
   </div>
 
-  <!-- Stats -->
+  <!-- Stats for active card -->
   <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-val" id="probNow">—</div>
-      <div class="stat-lbl">WIN NOW</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="avgNeeded">—</div>
-      <div class="stat-lbl">AVG CALLS TO WIN</div>
-    </div>
+    <div class="stat-card"><div class="stat-val" id="probNow">—</div><div class="stat-lbl">WIN NOW</div></div>
+    <div class="stat-card"><div class="stat-val" id="avgNeeded">—</div><div class="stat-lbl">AVG CALLS TO WIN</div></div>
   </div>
 
-  <!-- Prob bars -->
   <div class="prob-section">
     <div class="section-title">Probability within N more calls</div>
     <div id="probBars"></div>
   </div>
 
-  <!-- Line progress -->
   <div class="lines-section">
     <div class="section-title">Line progress</div>
     <div id="lineProgress"></div>
   </div>
 
-  <!-- Called balls -->
   <div class="called-section">
     <div class="section-title">Called numbers (<span id="calledCount">0</span>)</div>
     <div class="called-balls" id="calledBalls"></div>
   </div>
 
-  <!-- Info -->
   <div class="info-box">
-    <strong>How it works:</strong> Given your marked numbers, 10,000 random continuations of the game are simulated. The fraction that produce a win within N calls <em>is</em> the probability — no formula needed. This is the Monte Carlo method.<br><br>
-    <strong>Install as app:</strong> On iPhone, tap Share → "Add to Home Screen". On Android, tap the menu → "Install app" or "Add to Home Screen".
+    <strong>How it works:</strong> 10,000 random game continuations are simulated per card. The fraction that win within N calls is the probability.<br><br>
+    <strong>3-card strip:</strong> All cards share the same called numbers. Tap a card tab to view its stats. The hottest card gets a "BEST" badge.<br><br>
+    <strong>Install:</strong> iPhone → Share → Add to Home Screen. Android → menu → Install app.
   </div>
-
 </main>
 
 <script>
-const MODES = [
-  { id: 'standard', label: 'Standard Line', desc: 'Any row, column, or diagonal', fn: checkStandard },
-  { id: 'corners', label: 'Four Corners', desc: 'All 4 corners marked', fn: checkCorners },
-  { id: 'blackout', label: 'Blackout', desc: 'All 24 numbers + free', fn: checkBlackout },
-  { id: 'tshape', label: 'T-Shape', desc: 'Top row + center column', fn: checkTShape },
-  { id: 'xshape', label: 'X Pattern', desc: 'Both diagonals', fn: checkXShape },
-  { id: 'frame', label: 'Frame', desc: 'All outer edge cells', fn: checkFrame },
-  { id: 'plus', label: 'Plus Sign', desc: 'Center row + center column', fn: checkPlus },
+const MODES=[
+  {id:'standard',label:'Standard Line',desc:'Any row, column, or diagonal',fn:checkStandard},
+  {id:'corners',label:'Four Corners',desc:'All 4 corners marked',fn:checkCorners},
+  {id:'blackout',label:'Blackout',desc:'All 24 numbers + free',fn:checkBlackout},
+  {id:'tshape',label:'T-Shape',desc:'Top row + center column',fn:checkTShape},
+  {id:'xshape',label:'X Pattern',desc:'Both diagonals',fn:checkXShape},
+  {id:'frame',label:'Frame',desc:'All outer edge cells',fn:checkFrame},
+  {id:'plus',label:'Plus Sign',desc:'Center row + center column',fn:checkPlus},
 ];
+const RANGES=[[1,15],[16,30],[31,45],[46,60],[61,75]];
 
-const RANGES = [[1,15],[16,30],[31,45],[46,60],[61,75]];
-let card = [];
-let calledSet = new Set();
-let autoSeq = [];
-let currentMode = 'standard';
+// 3-card state
+const NUM_CARDS=3;
+let cards=[null,null,null]; // each: array of 25 numbers
+let enterModes=[false,false,false];
+let activeCard=0;
+let calledSet=new Set();
+let autoSeq=[];
+let currentMode='standard';
+let simCache=[null,null,null]; // cached sim results per card
 
-// --- Pattern check functions ---
-function checkStandard(c, s) {
-  const lines = getAllLines();
-  return lines.some(l => l.every(i => i === 12 || s.has(c[i])));
-}
-
-function checkCorners(c, s) {
-  return [0,4,20,24].every(i => s.has(c[i]));
-}
-
-function checkBlackout(c, s) {
-  return c.every((n,i) => i === 12 || s.has(n));
-}
-
-function checkTShape(c, s) {
-  // Column-major layout: col*5+row
-  // Top row (row 0): indices 0,5,10,15,20
-  // Center col (col N, col index 2): indices 10,11,12,13,14
-  const topRow = [0,5,10,15,20];
-  const midCol = [10,11,12,13,14];
-  return [...new Set([...topRow,...midCol])].every(i => i === 12 || s.has(c[i]));
-}
-
-function checkXShape(c, s) {
-  // Both diagonals — indices correct for column-major
-  const d1 = [0,6,12,18,24];
-  const d2 = [4,8,12,16,20];
-  return [...new Set([...d1,...d2])].every(i => i === 12 || s.has(c[i]));
-}
-
-function checkFrame(c, s) {
-  // Outer ring: row 0, row 4, col 0, col 4 (column-major: col*5+row)
-  const frame = new Set();
-  for(let r=0;r<5;r++) for(let col=0;col<5;col++)
-    if(r===0||r===4||col===0||col===4) frame.add(col*5+r);
-  return [...frame].every(i => i===12 || s.has(c[i]));
-}
-
-function checkPlus(c, s) {
-  // Center row (row 2): indices 2,7,12,17,22
-  // Center col (col N, col index 2): indices 10,11,12,13,14
-  const midRow = [2,7,12,17,22];
-  const midCol = [10,11,12,13,14];
-  return [...new Set([...midRow,...midCol])].every(i => i===12||s.has(c[i]));
-}
-
-function getAllLines() {
-  const lines = [];
-  for(let r=0;r<5;r++){const l=[];for(let c=0;c<5;c++) l.push(c*5+r);lines.push(l);}
-  for(let c=0;c<5;c++){const l=[];for(let r=0;r<5;r++) l.push(c*5+r);lines.push(l);}
-  lines.push([0,6,12,18,24]);
-  lines.push([4,8,12,16,20]);
-  return lines;
-}
-
-function getPatternCells() {
-  // Returns set of cell indices that are part of the winning pattern
-  const c = card;
-  const m = currentMode;
-  if(m==='standard') return null; // handled differently
-  if(m==='corners') return new Set([0,4,20,24]);
-  if(m==='blackout') { const s=new Set(); for(let i=0;i<25;i++) s.add(i); return s; }
-  if(m==='tshape') return new Set([0,5,10,11,12,13,14,15,20]); // top row + col N
-  if(m==='xshape') return new Set([0,4,6,8,12,16,18,20,24]);   // both diagonals
-  if(m==='plus') return new Set([2,7,10,11,12,13,14,17,22]);   // center row + col N
-  if(m==='frame'){
-    const s=new Set();
-    for(let r=0;r<5;r++) for(let col=0;col<5;col++)
-      if(r===0||r===4||col===0||col===4) s.add(col*5+r);
-    return s;
-  }
-  return null;
-}
-
-// --- Card generation ---
 function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
 
 function generateCard(){
   const nums=[];
   for(let c=0;c<5;c++){
-    const [lo,hi]=RANGES[c], col=[];
+    const [lo,hi]=RANGES[c],col=[];
     while(col.length<5){const n=randInt(lo,hi);if(!col.includes(n))col.push(n);}
     nums.push(...col);
   }
@@ -553,83 +252,257 @@ function generateCard(){
   return nums;
 }
 
-function randomizeCard(){
-  card=generateCard();
-  calledSet=new Set();
-  autoSeq=[];
-  document.getElementById('callSlider').value=0;
-  document.getElementById('sliderVal').textContent='0 called';
-  renderAll();
+// --- Win checkers ---
+function getAllLines(){
+  const l=[];
+  for(let r=0;r<5;r++){const row=[];for(let c=0;c<5;c++)row.push(c*5+r);l.push(row);}
+  for(let c=0;c<5;c++){const col=[];for(let r=0;r<5;r++)col.push(c*5+r);l.push(col);}
+  l.push([0,6,12,18,24]);l.push([4,8,12,16,20]);
+  return l;
+}
+function checkStandard(c,s){return getAllLines().some(l=>l.every(i=>i===12||s.has(c[i])));}
+function checkCorners(c,s){return[0,4,20,24].every(i=>s.has(c[i]));}
+function checkBlackout(c,s){return c.every((n,i)=>i===12||s.has(n));}
+function checkTShape(c,s){return[...new Set([0,5,10,15,20,10,11,12,13,14])].every(i=>i===12||s.has(c[i]));}
+function checkXShape(c,s){return[...new Set([0,6,12,18,24,4,8,16,20])].every(i=>i===12||s.has(c[i]));}
+function checkFrame(c,s){const f=new Set();for(let r=0;r<5;r++)for(let col=0;col<5;col++)if(r===0||r===4||col===0||col===4)f.add(col*5+r);return[...f].every(i=>i===12||s.has(c[i]));}
+function checkPlus(c,s){return[...new Set([2,7,12,17,22,10,11,12,13,14])].every(i=>i===12||s.has(c[i]));}
+
+function getCheckFn(){return MODES.find(m=>m.id===currentMode).fn;}
+
+function getPatternCells(){
+  const m=currentMode;
+  if(m==='standard')return null;
+  if(m==='corners')return new Set([0,4,20,24]);
+  if(m==='blackout'){const s=new Set();for(let i=0;i<25;i++)s.add(i);return s;}
+  if(m==='tshape')return new Set([0,5,10,11,12,13,14,15,20]);
+  if(m==='xshape')return new Set([0,4,6,8,12,16,18,20,24]);
+  if(m==='plus')return new Set([2,7,10,11,12,13,14,17,22]);
+  if(m==='frame'){const s=new Set();for(let r=0;r<5;r++)for(let c=0;c<5;c++)if(r===0||r===4||c===0||c===4)s.add(c*5+r);return s;}
+  return null;
 }
 
-function resetCalled(){
-  calledSet=new Set();
-  autoSeq=[];
-  document.getElementById('callSlider').value=0;
-  document.getElementById('sliderVal').textContent='0 called';
-  renderAll();
-}
-
-// --- Render ---
-function renderAll(){
-  renderCard();
-  renderCalledBalls();
-  runSim();
-}
-
-function renderCard(){
-  const grid=document.getElementById('cardGrid');
-  grid.innerHTML='';
-  const patternCells=getPatternCells();
-  const wonCells=getWonCells();
-
-  for(let row=0;row<5;row++){
-    for(let col=0;col<5;col++){
-      const idx=col*5+row;
-      const n=card[idx];
-      const cell=document.createElement('div');
-      cell.className='cell';
-      if(idx===12){cell.classList.add('free','called');cell.textContent='FREE';}
-      else {
-        cell.textContent=n||'';
-        if(wonCells.has(idx)) cell.classList.add('win-line');
-        else if(calledSet.has(n)) cell.classList.add('called');
-        else if(patternCells&&patternCells.has(idx)) cell.classList.add('highlight-pattern');
-      }
-      cell.addEventListener('click',()=>{
-        if(idx===12||!n) return;
-        if(calledSet.has(n)) calledSet.delete(n); else calledSet.add(n);
-        renderAll();
-      });
-      grid.appendChild(cell);
-    }
-  }
-
-  // Pattern label
-  const mode=MODES.find(m=>m.id===currentMode);
-  document.getElementById('patternLabel').textContent=mode?mode.desc:'';
-}
-
-function getWonCells(){
-  const s=new Set([...calledSet]);
-  s.add(0);
+function getWonCells(card){
   const won=new Set();
+  if(!card)return won;
   if(currentMode==='standard'){
-    getAllLines().forEach(line=>{
-      if(line.every(i=>i===12||calledSet.has(card[i])))
-        line.forEach(i=>won.add(i));
-    });
+    getAllLines().forEach(line=>{if(line.every(i=>i===12||calledSet.has(card[i])))line.forEach(i=>won.add(i));});
   } else {
     const pat=getPatternCells();
-    if(pat&&checkMode(card,calledSet)){
-      pat.forEach(i=>won.add(i));
-    }
+    if(pat&&getCheckFn()(card,calledSet))pat.forEach(i=>won.add(i));
   }
   return won;
 }
 
-function checkMode(c,s){
-  return MODES.find(m=>m.id===currentMode).fn(c,s);
+// --- Monte Carlo ---
+function runSim(cardArr){
+  if(!cardArr||cardArr.some((n,i)=>i!==12&&n===0))return null;
+  const checkFn=getCheckFn();
+  const isWon=checkFn(cardArr,calledSet);
+  if(isWon)return{won:true,probs:[1,1,1,1,1,1],avg:0};
+  const remaining=[];
+  for(let i=1;i<=75;i++)if(!calledSet.has(i))remaining.push(i);
+  const SIMS=10000,thresholds=[1,3,5,10,15,20];
+  const counts=new Array(thresholds.length).fill(0);
+  let totalToWin=0;
+  for(let s=0;s<SIMS;s++){
+    const p=remaining.slice();
+    for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
+    const sim=new Set([...calledSet]);
+    let wonAt=-1;
+    for(let i=0;i<p.length;i++){sim.add(p[i]);if(checkFn(cardArr,sim)){wonAt=i+1;break;}}
+    if(wonAt===-1)wonAt=p.length+20;
+    totalToWin+=wonAt;
+    thresholds.forEach((t,ti)=>{if(wonAt<=t)counts[ti]++;});
+  }
+  return{won:false,probs:counts.map(c=>c/SIMS),avg:Math.round(totalToWin/SIMS)};
+}
+
+function runAllSims(){
+  simCache=cards.map(c=>runSim(c));
+}
+
+// --- Render ---
+function renderAll(){
+  runAllSims();
+  renderCardTabs();
+  renderSummaryStrip();
+  renderActiveCard();
+  renderStats();
+  renderCalledBalls();
+}
+
+function renderCardTabs(){
+  // Find best card by +5 call probability
+  let bestIdx=-1,bestProb=-1;
+  simCache.forEach((r,i)=>{
+    if(r&&!r.won){const p=r.probs[2]||0;if(p>bestProb){bestProb=p;bestIdx=i;}}
+  });
+
+  const div=document.getElementById('cardTabs');
+  div.innerHTML='';
+  for(let i=0;i<NUM_CARDS;i++){
+    const res=simCache[i];
+    const isWon=res&&res.won;
+    const prob=res?Math.round((res.probs[2]||0)*100):null;
+    const tab=document.createElement('div');
+    tab.className='card-tab'+(i===activeCard?' active':'')+(isWon?' won':'');
+    tab.onclick=()=>{activeCard=i;renderActiveCard();renderStats();renderCardTabs();renderSummaryStrip();};
+
+    let badge='';
+    if(isWon) badge='<div class="tab-badge won-badge">WON</div>';
+    else if(i===bestIdx&&bestProb>0) badge='<div class="tab-badge">BEST</div>';
+
+    const probText=res?(isWon?'<span style="color:var(--win)">BINGO!</span>':`${prob}% +5`):'<span style="color:var(--muted)">—</span>';
+    tab.innerHTML=`${badge}<div class="tab-label">CARD ${i+1}</div><div class="tab-prob">${probText}</div>`;
+    div.appendChild(tab);
+  }
+}
+
+function renderSummaryStrip(){
+  const div=document.getElementById('summaryStrip');
+  div.innerHTML='';
+  for(let i=0;i<NUM_CARDS;i++){
+    const res=simCache[i];
+    const isWon=res&&res.won;
+    const prob=res?Math.round((res.probs[2]||0)*100):null;
+    const strip=document.createElement('div');
+    strip.className='strip-card'+(i===activeCard?' active':'')+(isWon?' won':'');
+    const hot=prob!==null&&prob>=30;
+    strip.innerHTML=`<div class="strip-pct${hot||isWon?' hot':''}">${isWon?'WIN':prob!==null?prob+'%':'—'}</div><div class="strip-lbl">+5 CALLS</div>`;
+    strip.onclick=()=>{activeCard=i;renderActiveCard();renderStats();renderCardTabs();renderSummaryStrip();};
+    div.appendChild(strip);
+  }
+}
+
+function renderActiveCard(){
+  const card=cards[activeCard];
+  const grid=document.getElementById('cardGrid');
+  grid.innerHTML='';
+
+  // Remove old hint
+  const oldHint=document.getElementById('enterHintEl');
+  if(oldHint)oldHint.remove();
+
+  if(enterModes[activeCard]){
+    // Show enter-mode hint
+    const hint=document.createElement('div');
+    hint.id='enterHintEl';hint.className='enter-hint';
+    const filled=card?card.filter((n,i)=>i!==12&&n>0).length:0;
+    const complete=card&&card.every((n,i)=>i===12||n>0);
+    hint.textContent=complete?'Card complete — tap numbers as called':`Enter card numbers (${filled}/24)`;
+    grid.parentNode.insertBefore(hint,grid);
+  }
+
+  const patternCells=getPatternCells();
+  const wonCells=card?getWonCells(card):new Set();
+  const cardComplete=card&&card.every((n,i)=>i===12||n>0);
+
+  for(let row=0;row<5;row++){
+    for(let col=0;col<5;col++){
+      const idx=col*5+row;
+      const n=card?card[idx]:0;
+      const cell=document.createElement('div');
+      cell.className='cell';
+
+      if(idx===12){
+        cell.classList.add('free','called');cell.textContent='FREE';
+      } else if(enterModes[activeCard]&&(!cardComplete||n===0)){
+        if(n>0){cell.textContent=n;cell.style.borderColor='var(--accent)';cell.style.color='var(--accent)';}
+        else{cell.classList.add('empty-enter');cell.textContent='+';}
+        cell.addEventListener('click',()=>openPicker(idx));
+      } else {
+        cell.textContent=n||'';
+        if(wonCells.has(idx))cell.classList.add('win-line');
+        else if(calledSet.has(n))cell.classList.add('called');
+        else if(patternCells&&patternCells.has(idx))cell.classList.add('highlight-pattern');
+        if(n>0)cell.addEventListener('click',()=>{
+          if(calledSet.has(n))calledSet.delete(n);else calledSet.add(n);
+          document.getElementById('callSlider').value=0;
+          autoSeq=[];
+          renderAll();
+        });
+      }
+      grid.appendChild(cell);
+    }
+  }
+
+  const mode=MODES.find(m=>m.id===currentMode);
+  document.getElementById('patternLabel').textContent=mode?mode.desc:'';
+}
+
+function renderStats(){
+  const res=simCache[activeCard];
+  const card=cards[activeCard];
+  const isWon=res&&res.won;
+
+  // Win banner
+  const banner=document.getElementById('winBanner');
+  if(isWon){
+    banner.classList.add('show');
+    document.getElementById('winBannerSub').textContent=`Card ${activeCard+1} — ${calledSet.size} numbers called`;
+    document.getElementById('probNow').textContent='100%';
+    document.getElementById('probNow').className='stat-val won';
+    document.getElementById('avgNeeded').textContent='0';
+  } else {
+    banner.classList.remove('show');
+    document.getElementById('probNow').textContent='0%';
+    document.getElementById('probNow').className='stat-val';
+    document.getElementById('avgNeeded').textContent=res?res.avg:'—';
+  }
+
+  if(!res){
+    document.getElementById('probBars').innerHTML='';
+    document.getElementById('lineProgress').innerHTML='<span style="font-size:11px;color:var(--muted);">Enter or randomize card to see stats</span>';
+    return;
+  }
+
+  // Prob bars
+  const thresholds=[1,3,5,10,15,20];
+  const barsDiv=document.getElementById('probBars');
+  barsDiv.innerHTML='';
+  thresholds.forEach((t,ti)=>{
+    const pct=isWon?100:Math.round(res.probs[ti]*100);
+    const cls=pct>=70?'high':pct<=25?'low':'';
+    const row=document.createElement('div');
+    row.className='prob-row';
+    row.innerHTML=`<span class="prob-label">+${t} call${t>1?'s':''}</span><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div><span class="prob-pct">${pct}%</span>`;
+    barsDiv.appendChild(row);
+  });
+
+  // Line progress
+  renderLineProgress(card);
+}
+
+function renderLineProgress(card){
+  const div=document.getElementById('lineProgress');
+  div.innerHTML='';
+  if(!card)return;
+
+  if(currentMode==='standard'){
+    const names=['Row 1','Row 2','Row 3','Row 4','Row 5','Col B','Col I','Col N','Col G','Col O','Diag \\','Diag /'];
+    getAllLines().forEach((line,li)=>{
+      const filled=line.filter(i=>i===12||calledSet.has(card[i])).length;
+      const complete=filled===5;
+      const row=document.createElement('div');row.className='line-row';
+      const color=complete?'var(--win)':filled>=4?'var(--warn)':'var(--muted)';
+      const dots=line.map(i=>{const f=i===12||calledSet.has(card[i]);return`<div class="dot${f?' filled':''}${complete?' win':''}"></div>`;}).join('');
+      row.innerHTML=`<span class="line-name">${names[li]}</span><div class="line-dots">${dots}</div><span style="font-size:10px;margin-left:auto;color:${color}">${filled}/5</span>`;
+      div.appendChild(row);
+    });
+  } else {
+    const pat=getPatternCells();
+    if(!pat)return;
+    const needed=[...pat].filter(i=>i!==12);
+    const filled=needed.filter(i=>calledSet.has(card[i])).length;
+    const total=needed.length;
+    const pct=Math.round(filled/total*100);
+    const complete=filled===total;
+    const row=document.createElement('div');row.className='line-row';
+    const bar=`<div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:${complete?'var(--win)':'var(--accent)'};width:${pct}%;transition:width 0.3s;"></div></div>`;
+    row.innerHTML=`<span class="line-name" style="min-width:60px">${MODES.find(m=>m.id===currentMode).label}</span>${bar}<span style="font-size:10px;margin-left:8px;color:${complete?'var(--win)':'var(--muted)'}">${filled}/${total}</span>`;
+    div.appendChild(row);
+  }
 }
 
 function renderCalledBalls(){
@@ -637,11 +510,101 @@ function renderCalledBalls(){
   div.innerHTML='';
   document.getElementById('calledCount').textContent=calledSet.size;
   if(!calledSet.size){div.innerHTML='<span style="font-size:11px;color:var(--muted);">None yet — tap cells or use slider</span>';return;}
-  [...calledSet].sort((a,b)=>a-b).forEach(n=>{
-    const b=document.createElement('div');
-    b.className='ball';b.textContent=n;div.appendChild(b);
-  });
+  [...calledSet].sort((a,b)=>a-b).forEach(n=>{const b=document.createElement('div');b.className='ball';b.textContent=n;div.appendChild(b);});
 }
+
+// --- Card actions ---
+function randomizeActiveCard(){
+  enterModes[activeCard]=false;
+  cards[activeCard]=generateCard();
+  calledSet=new Set();autoSeq=[];
+  document.getElementById('callSlider').value=0;
+  document.getElementById('sliderVal').textContent='0 called';
+  updateEnterBtn();
+  renderAll();
+}
+
+function randomizeAll(){
+  for(let i=0;i<NUM_CARDS;i++){cards[i]=generateCard();enterModes[i]=false;}
+  calledSet=new Set();autoSeq=[];
+  document.getElementById('callSlider').value=0;
+  document.getElementById('sliderVal').textContent='0 called';
+  updateEnterBtn();
+  renderAll();
+}
+
+function resetCalled(){
+  calledSet=new Set();autoSeq=[];
+  document.getElementById('callSlider').value=0;
+  document.getElementById('sliderVal').textContent='0 called';
+  renderAll();
+}
+
+// --- Enter mode ---
+function startEnterMode(){
+  enterModes[activeCard]=true;
+  cards[activeCard]=Array(25).fill(0);
+  updateEnterBtn();
+  renderActiveCard();
+  simCache[activeCard]=null;
+  renderStats();
+  renderCardTabs();
+  renderSummaryStrip();
+}
+
+function updateEnterBtn(){
+  const btn=document.getElementById('enterBtn');
+  if(enterModes[activeCard]){
+    btn.textContent='Cancel Entry';btn.className='btn danger-btn';btn.onclick=cancelEnterMode;
+  } else {
+    btn.textContent='Enter Card';btn.className='btn primary';btn.onclick=startEnterMode;
+  }
+}
+
+function cancelEnterMode(){
+  enterModes[activeCard]=false;
+  cards[activeCard]=generateCard();
+  updateEnterBtn();
+  renderAll();
+}
+
+// --- Picker ---
+let pickerCellIdx=-1;
+function openPicker(idx){
+  pickerCellIdx=idx;
+  const col=Math.floor(idx/5);
+  const[lo,hi]=RANGES[col];
+  document.getElementById('pickerTitle').textContent=`${'BINGO'[col]}  —  ${lo} to ${hi}`;
+  const grid=document.getElementById('pickerGrid');
+  grid.innerHTML='';
+  const card=cards[activeCard];
+  const usedInCol=new Set();
+  for(let r=0;r<5;r++){const i=col*5+r;if(i!==idx&&card[i]>0)usedInCol.add(card[i]);}
+  for(let n=lo;n<=hi;n++){
+    const btn=document.createElement('div');
+    btn.className='picker-num'+(usedInCol.has(n)?' used':'');
+    btn.textContent=n;
+    btn.addEventListener('click',()=>{
+      cards[activeCard][idx]=n;closePicker();
+      const complete=cards[activeCard].every((v,i)=>i===12||v>0);
+      if(complete)enterModes[activeCard]=false;
+      updateEnterBtn();
+      renderActiveCard();
+      if(complete)renderAll();
+    });
+    grid.appendChild(btn);
+  }
+  if(card[idx]>0){
+    const clr=document.createElement('div');clr.className='picker-num';clr.textContent='CLR';
+    clr.style.cssText='color:var(--danger);border-color:var(--danger);';
+    clr.addEventListener('click',()=>{cards[activeCard][idx]=0;closePicker();renderActiveCard();});
+    grid.appendChild(clr);
+  }
+  const ov=document.getElementById('pickerOverlay');
+  ov.style.display='flex';
+  ov.onclick=(e)=>{if(e.target===ov)closePicker();};
+}
+function closePicker(){document.getElementById('pickerOverlay').style.display='none';pickerCellIdx=-1;}
 
 // --- Slider ---
 function handleSlider(val){
@@ -656,116 +619,7 @@ function handleSlider(val){
   renderAll();
 }
 
-// --- Monte Carlo ---
-function runSim(){
-  const c=card;
-  if(!c.length||c.filter((_,i)=>i!==12&&_===0).length>0&&c[0]===0){
-    setSimDefaults(); return;
-  }
-
-  const isWon=checkMode(c,calledSet);
-
-  // Win banner
-  const banner=document.getElementById('winBanner');
-  if(isWon){
-    banner.classList.add('show');
-    document.getElementById('winBannerSub').textContent=
-      `${calledSet.size} numbers called — ${MODES.find(m=>m.id===currentMode)?.desc}`;
-    document.getElementById('probNow').textContent='100%';
-    document.getElementById('probNow').className='stat-val won';
-    document.getElementById('avgNeeded').textContent='0';
-  } else {
-    banner.classList.remove('show');
-    document.getElementById('probNow').textContent='0%';
-    document.getElementById('probNow').className='stat-val';
-  }
-
-  // Build remaining pool
-  const remaining=[];
-  for(let i=1;i<=75;i++) if(!calledSet.has(i)) remaining.push(i);
-
-  const SIMS=10000;
-  const thresholds=[1,3,5,10,15,20];
-  const counts=new Array(thresholds.length).fill(0);
-  let totalToWin=0;
-
-  for(let s=0;s<SIMS;s++){
-    const p=remaining.slice();
-    for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
-    const sim=new Set([...calledSet]);
-    let wonAt=isWon?0:-1;
-    if(!isWon){
-      for(let i=0;i<p.length;i++){
-        sim.add(p[i]);
-        if(checkMode(c,sim)){wonAt=i+1;break;}
-      }
-    }
-    if(wonAt===-1) wonAt=p.length+20;
-    totalToWin+=wonAt;
-    thresholds.forEach((t,ti)=>{if(wonAt<=t)counts[ti]++;});
-  }
-
-  const avg=isWon?0:Math.round(totalToWin/SIMS);
-  document.getElementById('avgNeeded').textContent=avg;
-
-  // Bars
-  const barsDiv=document.getElementById('probBars');
-  barsDiv.innerHTML='';
-  thresholds.forEach((t,ti)=>{
-    const pct=Math.round(counts[ti]/SIMS*100);
-    const cls=pct>=70?'high':pct<=25?'low':'';
-    const row=document.createElement('div');
-    row.className='prob-row';
-    row.innerHTML=`<span class="prob-label">+${t} call${t>1?'s':''}</span><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div><span class="prob-pct">${pct}%</span>`;
-    barsDiv.appendChild(row);
-  });
-
-  renderLineProgress();
-}
-
-function renderLineProgress(){
-  const div=document.getElementById('lineProgress');
-  div.innerHTML='';
-
-  if(currentMode==='standard'){
-    const names=['Row 1','Row 2','Row 3','Row 4','Row 5','Col B','Col I','Col N','Col G','Col O','Diag \\','Diag /'];
-    getAllLines().forEach((line,li)=>{
-      const filled=line.filter(i=>i===12||calledSet.has(card[i])).length;
-      const isComplete=filled===5;
-      const row=document.createElement('div');
-      row.className='line-row';
-      const dots=line.map(i=>{
-        const f=i===12||calledSet.has(card[i]);
-        return `<div class="dot${f?' filled':''}${isComplete?' win':''}"></div>`;
-      }).join('');
-      const statusColor=isComplete?'var(--win)':filled>=4?'var(--warn)':'var(--muted)';
-      row.innerHTML=`<span class="line-name">${names[li]}</span><div class="line-dots">${dots}</div><span class="line-status" style="color:${statusColor}">${filled}/5</span>`;
-      div.appendChild(row);
-    });
-  } else {
-    const pat=getPatternCells();
-    if(!pat){div.innerHTML='<span style="font-size:11px;color:var(--muted);">—</span>';return;}
-    const needed=[...pat].filter(i=>i!==12);
-    const filled=needed.filter(i=>calledSet.has(card[i])).length;
-    const total=needed.length;
-    const pct=Math.round(filled/total*100);
-    const isComplete=filled===total;
-    const row=document.createElement('div');
-    row.className='line-row';
-    const bar=`<div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:${isComplete?'var(--win)':'var(--accent)'};width:${pct}%;transition:width 0.3s;"></div></div>`;
-    row.innerHTML=`<span class="line-name" style="min-width:60px;">${MODES.find(m=>m.id===currentMode).label}</span>${bar}<span class="line-status" style="color:${isComplete?'var(--win)':'var(--muted)'}">${filled}/${total}</span>`;
-    div.appendChild(row);
-  }
-}
-
-function setSimDefaults(){
-  document.getElementById('probNow').textContent='—';
-  document.getElementById('avgNeeded').textContent='—';
-  document.getElementById('probBars').innerHTML='';
-  document.getElementById('lineProgress').innerHTML='';
-}
-
-// --- Mode selector ---
+// --- Mode buttons ---
 function buildModeButtons(){
   const scroll=document.getElementById('modeScroll');
   scroll.innerHTML='';
@@ -773,18 +627,14 @@ function buildModeButtons(){
     const btn=document.createElement('button');
     btn.className='mode-btn'+(m.id===currentMode?' active':'');
     btn.textContent=m.label;
-    btn.onclick=()=>{
-      currentMode=m.id;
-      buildModeButtons();
-      renderAll();
-    };
+    btn.onclick=()=>{currentMode=m.id;buildModeButtons();renderAll();};
     scroll.appendChild(btn);
   });
 }
 
-// Init
+// --- Init ---
 buildModeButtons();
-randomizeCard();
+randomizeAll();
 </script>
 </body>
 </html>
