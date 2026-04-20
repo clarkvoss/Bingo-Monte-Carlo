@@ -396,10 +396,10 @@ async function runAll(){
     assertNear('Blackout +10 calls ≈ 0%', S5, rB.probs[1], 0.0, 0.02,
       'Impossible to get blackout in 10 calls');
 
-    // Corners +40 calls should have reasonable probability (avg is ~61)
-    const rC40=monteCarlo(card,new Set(),checkCorners,[40]);
-    assert('Corners +40 calls prob > 20%', S5, rC40.probs[0]>0.20,
-      `p(win in 40) = ${(rC40.probs[0]*100).toFixed(1)}%`);
+    // Corners avg is ~61 calls, so at +65 calls we should see >40% win rate
+    const rC40=monteCarlo(card,new Set(),checkCorners,[65]);
+    assert('Corners +65 calls prob > 40%', S5, rC40.probs[0]>0.40,
+      `p(win in 65) = ${(rC40.probs[0]*100).toFixed(1)}%`);
   }
 
   await new Promise(r=>setTimeout(r,10));
