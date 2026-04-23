@@ -10,39 +10,48 @@
 <title>Bingo Monte Carlo</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
-:root {
-  --bg:#0f0f14; --surface:#1a1a24; --surface2:#22222e;
-  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
-  --text:#e8e8f0; --muted:#7070a0;
-  --accent:#4f7fff; --accent2:#7b5ea7;
-  --win:#2dce89; --warn:#f5a623; --danger:#e74c3c;
+:root{
+  --bg:#0f0f14;--surface:#1a1a24;--surface2:#22222e;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#e8e8f0;--muted:#7070a0;
+  --accent:#4f7fff;--accent2:#7b5ea7;
+  --win:#2dce89;--warn:#f5a623;--danger:#e74c3c;
   --radius:10px;
   --font-display:'Bebas Neue',sans-serif;
   --font-mono:'DM Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden;padding-bottom:calc(env(safe-area-inset-bottom) + 60px);}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden;padding-bottom:calc(env(safe-area-inset-bottom)+60px);}
 
 header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10;}
 .logo{font-family:var(--font-display);font-size:26px;letter-spacing:2px;color:var(--text);line-height:1;}
 .logo span{color:var(--accent);}
-.sim-badge{font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;letter-spacing:0.5px;}
+.header-btns{display:flex;gap:8px;align-items:center;}
+.icon-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:16px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.14s;}
+.icon-btn:active{transform:scale(0.93);}
+.icon-btn.accent{background:rgba(79,127,255,0.15);border-color:var(--accent);color:var(--accent);}
 
 main{padding:14px 16px;max-width:480px;margin:0 auto;}
 
-/* Card tabs */
-.card-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
-.card-tab{padding:10px 6px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);cursor:pointer;text-align:center;transition:all 0.14s;position:relative;}
+/* Card tabs — dynamic columns */
+.card-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.card-tabs::-webkit-scrollbar{display:none;}
+.card-tab{flex-shrink:0;min-width:80px;padding:10px 8px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);cursor:pointer;text-align:center;transition:all 0.14s;position:relative;}
 .card-tab.active{border-color:var(--accent);background:rgba(79,127,255,0.1);}
 .card-tab.won{border-color:var(--win);background:rgba(45,206,137,0.1);}
-.tab-label{font-family:var(--font-display);font-size:18px;letter-spacing:1px;color:var(--text);}
-.tab-prob{font-size:11px;color:var(--muted);margin-top:2px;}
+.tab-add{flex-shrink:0;min-width:44px;padding:10px 6px;border-radius:var(--radius);border:1.5px dashed var(--border2);background:transparent;cursor:pointer;text-align:center;color:var(--muted);font-size:20px;transition:all 0.14s;display:flex;align-items:center;justify-content:center;}
+.tab-add:active{background:var(--surface2);}
+.tab-label{font-family:var(--font-display);font-size:16px;letter-spacing:1px;color:var(--text);}
+.tab-prob{font-size:10px;color:var(--muted);margin-top:2px;}
 .tab-badge{position:absolute;top:-6px;right:-4px;background:var(--warn);color:#000;font-size:9px;font-weight:500;padding:2px 6px;border-radius:10px;letter-spacing:0.3px;}
 .tab-badge.won-badge{background:var(--win);}
+.tab-remove{position:absolute;top:-6px;left:-4px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.tab-remove:active{background:var(--danger);color:#fff;border-color:var(--danger);}
 
 /* Summary strip */
-.summary-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
-.strip-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;}
+.summary-strip{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.summary-strip::-webkit-scrollbar{display:none;}
+.strip-card{flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;cursor:pointer;}
 .strip-card.active{border-color:var(--accent);}
 .strip-card.won{border-color:var(--win);}
 .strip-pct{font-family:var(--font-display);font-size:20px;letter-spacing:1px;color:var(--muted);}
@@ -70,11 +79,12 @@ main{padding:14px 16px;max-width:480px;margin:0 auto;}
 .cell.empty-enter{border:1.5px dashed var(--accent);color:var(--accent);font-size:11px;}
 
 /* Buttons */
-.btn-row{display:flex;gap:6px;margin-bottom:14px;}
-.btn{flex:1;padding:9px 6px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:0.5px;transition:all 0.14s;}
+.btn-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.btn{flex:1;min-width:70px;padding:9px 6px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:0.5px;transition:all 0.14s;}
 .btn:active{transform:scale(0.97);background:var(--surface2);}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
 .btn.danger-btn{border-color:var(--danger);color:var(--danger);}
+.btn.scan-btn{background:rgba(123,94,167,0.2);border-color:var(--accent2);color:#c9a8ff;}
 .enter-hint{font-size:11px;color:var(--accent);text-align:center;margin-bottom:8px;letter-spacing:0.5px;}
 
 /* Picker */
@@ -82,11 +92,36 @@ main{padding:14px 16px;max-width:480px;margin:0 auto;}
 .picker-num:active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .picker-num.used{opacity:0.25;pointer-events:none;}
 
+/* Overlays */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:flex-end;justify-content:center;}
+.sheet{background:var(--surface);border-radius:18px 18px 0 0;padding:18px;width:100%;max-width:480px;}
+.sheet-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.sheet-title{font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--text);}
+.sheet-close{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font-mono);font-size:11px;padding:5px 10px;cursor:pointer;}
+
+/* Scan overlay */
+.scan-preview{width:100%;border-radius:10px;background:var(--surface2);border:1px solid var(--border2);min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden;position:relative;}
+.scan-preview img{width:100%;border-radius:10px;object-fit:contain;display:none;}
+.scan-placeholder{font-size:13px;color:var(--muted);text-align:center;padding:20px;}
+.scan-status{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px;min-height:18px;}
+.api-key-row{display:flex;gap:6px;margin-bottom:12px;align-items:center;}
+.api-key-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:11px;padding:8px 10px;letter-spacing:0.5px;}
+.api-key-input:focus{outline:none;border-color:var(--accent);}
+.api-key-input::placeholder{color:var(--muted);}
+.api-key-label{font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px;}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Settings */
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.settings-label{font-size:12px;color:var(--text);}
+.settings-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
 /* Slider */
 .slider-section{margin-bottom:14px;}
 .slider-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .slider-title{font-size:11px;color:var(--muted);letter-spacing:0.5px;}
-.slider-val{font-size:13px;font-weight:500;color:var(--accent);}
+.slider-val{font-size:12px;font-weight:500;color:var(--accent);}
 input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
 /* Stats */
@@ -134,20 +169,16 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 <body>
 <header>
   <div class="logo">BINGO<span>.</span>ODDS</div>
-  <div class="sim-badge">10K MONTE CARLO</div>
+  <div class="header-btns">
+    <div class="icon-btn" onclick="openSettings()" title="Settings">⚙️</div>
+  </div>
 </header>
 
 <main>
-  <!-- Game mode -->
   <div class="mode-scroll" id="modeScroll"></div>
-
-  <!-- Card tabs -->
   <div class="card-tabs" id="cardTabs"></div>
-
-  <!-- Summary strip -->
   <div class="summary-strip" id="summaryStrip"></div>
 
-  <!-- Active card -->
   <div class="card-wrap">
     <div id="patternLabel" class="pattern-label"></div>
     <div class="bingo-header">
@@ -156,40 +187,94 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
     <div class="bingo-grid" id="cardGrid"></div>
   </div>
 
-  <!-- Buttons -->
   <div class="btn-row">
+    <button class="btn scan-btn" onclick="openScan()">📷 Scan</button>
     <button class="btn primary" id="enterBtn" onclick="startEnterMode()">Enter Card</button>
     <button class="btn" onclick="randomizeActiveCard()">Random</button>
-    <button class="btn" onclick="resetCalled()">Reset All</button>
+    <button class="btn" onclick="resetCalled()">Reset</button>
   </div>
 
-  <!-- Picker -->
-  <div id="pickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;align-items:flex-end;justify-content:center;">
-    <div style="background:var(--surface);border-radius:18px 18px 0 0;padding:18px;width:100%;max-width:480px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span id="pickerTitle" style="font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--text);"></span>
-        <button onclick="closePicker()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font-mono);font-size:11px;padding:5px 10px;cursor:pointer;">Cancel</button>
+  <!-- Number picker overlay -->
+  <div class="overlay" id="pickerOverlay" style="align-items:flex-end;">
+    <div class="sheet">
+      <div class="sheet-header">
+        <span class="sheet-title" id="pickerTitle"></span>
+        <button class="sheet-close" onclick="closePicker()">Cancel</button>
       </div>
       <div id="pickerGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;max-height:250px;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);"></div>
     </div>
   </div>
 
-  <!-- Slider — shared across all cards -->
+  <!-- Scan overlay -->
+  <div class="overlay" id="scanOverlay" style="align-items:flex-end;">
+    <div class="sheet" style="padding-bottom:calc(18px + env(safe-area-inset-bottom));">
+      <div class="sheet-header">
+        <span class="sheet-title">📷 SCAN CARD</span>
+        <button class="sheet-close" onclick="closeScan()">Cancel</button>
+      </div>
+      <div class="api-key-label">ANTHROPIC API KEY (stored locally, never shared)</div>
+      <div class="api-key-row">
+        <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." oninput="saveApiKey(this.value)">
+        <button class="btn" style="flex:0;white-space:nowrap;" onclick="toggleApiKeyVis()">Show</button>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+      <div class="scan-preview" id="scanPreview" onclick="document.getElementById('photoInput').click()">
+        <img id="previewImg" alt="Card preview">
+        <div class="scan-placeholder" id="scanPlaceholder">📸 Tap to take photo or choose image<br><br><span style="font-size:10px;color:var(--muted)">Point camera at your Bingo card.<br>Good lighting = better results.</span></div>
+      </div>
+      <div class="scan-status" id="scanStatus"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn scan-btn" style="flex:2" onclick="document.getElementById('photoInput').click()">📷 Choose Photo</button>
+        <button class="btn primary" style="flex:2" id="scanBtn" onclick="runScan()" disabled>✨ Extract Numbers</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;">
+        Requires an Anthropic API key. Get one free at <strong style="color:var(--text)">console.anthropic.com</strong>. Your key is saved in your browser only.
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings overlay -->
+  <div class="overlay" id="settingsOverlay" style="align-items:flex-end;">
+    <div class="sheet" style="padding-bottom:calc(18px + env(safe-area-inset-bottom));">
+      <div class="sheet-header">
+        <span class="sheet-title">⚙️ SETTINGS</span>
+        <button class="sheet-close" onclick="closeSettings()">Done</button>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">API Key</div><div class="settings-sub" id="apiKeyStatus">Not set</div></div>
+        <button class="btn" style="flex:0;font-size:10px;" onclick="closeSettings();openScan()">Set Key</button>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Max cards</div><div class="settings-sub">Currently <span id="cardCountDisplay">3</span> cards</div></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="icon-btn" onclick="removeCard()">−</button>
+          <button class="icon-btn" onclick="addCard()">+</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Randomize all cards</div><div class="settings-sub">Replace all cards with random numbers</div></div>
+        <button class="btn" style="flex:0;font-size:10px;" onclick="randomizeAll();closeSettings()">Go</button>
+      </div>
+      <div style="padding-top:10px;font-size:10px;color:var(--muted);line-height:1.6;">
+        <strong style="color:var(--text)">Install as app:</strong> iPhone → Share → Add to Home Screen. Android → menu → Install app.
+      </div>
+    </div>
+  </div>
+
+  <!-- Slider -->
   <div class="slider-section">
     <div class="slider-header">
-      <span class="slider-title">CALLED NUMBERS</span>
+      <span class="slider-title">SIMULATE FUTURE CALLS</span>
       <span class="slider-val" id="sliderVal">0 called</span>
     </div>
     <input type="range" min="0" max="74" value="0" id="callSlider" oninput="handleSlider(this.value)">
   </div>
 
-  <!-- Win banner -->
   <div class="win-banner" id="winBanner">
     <div class="win-banner-title">BINGO!</div>
     <div class="win-banner-sub" id="winBannerSub"></div>
   </div>
 
-  <!-- Stats for active card -->
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-val" id="probNow">—</div><div class="stat-lbl">WIN NOW</div></div>
     <div class="stat-card"><div class="stat-val" id="avgNeeded">—</div><div class="stat-lbl">AVG CALLS TO WIN</div></div>
@@ -211,9 +296,9 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
   </div>
 
   <div class="info-box">
-    <strong>How it works:</strong> 10,000 random game continuations are simulated per card. The fraction that win within N calls is the probability.<br><br>
-    <strong>3-card strip:</strong> All cards share the same called numbers. Tap a card tab to view its stats. The hottest card gets a "BEST" badge.<br><br>
-    <strong>Install:</strong> iPhone → Share → Add to Home Screen. Android → menu → Install app.
+    <strong>How it works:</strong> 10,000 random game continuations simulated per card. The fraction that win within N calls is your probability.<br><br>
+    <strong>Scan:</strong> Photo → Claude AI extracts the 24 numbers automatically. Needs an Anthropic API key.<br><br>
+    <strong>Cards:</strong> Add up to 6 cards via Settings (⚙️). All cards share called numbers.
   </div>
 </main>
 
@@ -228,38 +313,37 @@ const MODES=[
   {id:'plus',label:'Plus Sign',desc:'Center row + center column',fn:checkPlus},
 ];
 const RANGES=[[1,15],[16,30],[31,45],[46,60],[61,75]];
+const MAX_CARDS=10;
+const MIN_CARDS=1;
 
-// 3-card state
-const NUM_CARDS=3;
-let cards=[null,null,null]; // each: array of 25 numbers
-let enterModes=[false,false,false];
+// State
+let cards=[];
+let enterModes=[];
 let activeCard=0;
 let calledSet=new Set();
 let autoSeq=[];
 let manualBase=new Set();
 let currentMode='standard';
-let simCache=[null,null,null]; // cached sim results per card
+let simCache=[];
+let currentPhotoBase64=null;
 
 function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
-
 function generateCard(){
   const nums=[];
   for(let c=0;c<5;c++){
-    const [lo,hi]=RANGES[c],col=[];
+    const[lo,hi]=RANGES[c],col=[];
     while(col.length<5){const n=randInt(lo,hi);if(!col.includes(n))col.push(n);}
     nums.push(...col);
   }
-  nums[12]=0;
-  return nums;
+  nums[12]=0;return nums;
 }
 
-// --- Win checkers ---
+// Win checkers
 function getAllLines(){
   const l=[];
   for(let r=0;r<5;r++){const row=[];for(let c=0;c<5;c++)row.push(c*5+r);l.push(row);}
   for(let c=0;c<5;c++){const col=[];for(let r=0;r<5;r++)col.push(c*5+r);l.push(col);}
-  l.push([0,6,12,18,24]);l.push([4,8,12,16,20]);
-  return l;
+  l.push([0,6,12,18,24]);l.push([4,8,12,16,20]);return l;
 }
 function checkStandard(c,s){return getAllLines().some(l=>l.every(i=>i===12||s.has(c[i])));}
 function checkCorners(c,s){return[0,4,20,24].every(i=>s.has(c[i]));}
@@ -268,7 +352,6 @@ function checkTShape(c,s){return[...new Set([0,5,10,15,20,10,11,12,13,14])].ever
 function checkXShape(c,s){return[...new Set([0,6,12,18,24,4,8,16,20])].every(i=>i===12||s.has(c[i]));}
 function checkFrame(c,s){const f=new Set();for(let r=0;r<5;r++)for(let col=0;col<5;col++)if(r===0||r===4||col===0||col===4)f.add(col*5+r);return[...f].every(i=>i===12||s.has(c[i]));}
 function checkPlus(c,s){return[...new Set([2,7,12,17,22,10,11,12,13,14])].every(i=>i===12||s.has(c[i]));}
-
 function getCheckFn(){return MODES.find(m=>m.id===currentMode).fn;}
 
 function getPatternCells(){
@@ -279,7 +362,7 @@ function getPatternCells(){
   if(m==='tshape')return new Set([0,5,10,11,12,13,14,15,20]);
   if(m==='xshape')return new Set([0,4,6,8,12,16,18,20,24]);
   if(m==='plus')return new Set([2,7,10,11,12,13,14,17,22]);
-  if(m==='frame'){const s=new Set();for(let r=0;r<5;r++)for(let c=0;c<5;c++)if(r===0||r===4||c===0||c===4)s.add(c*5+r);return s;}
+  if(m==='frame'){const s=new Set();for(let r=0;r<5;r++)for(let col=0;col<5;col++)if(r===0||r===4||col===0||col===4)s.add(col*5+r);return s;}
   return null;
 }
 
@@ -295,8 +378,8 @@ function getWonCells(card){
   return won;
 }
 
-// --- Monte Carlo ---
-function runSim(cardArr){
+// Monte Carlo
+function runSimForCard(cardArr){
   if(!cardArr||cardArr.some((n,i)=>i!==12&&n===0))return null;
   const checkFn=getCheckFn();
   const isWon=checkFn(cardArr,calledSet);
@@ -319,11 +402,9 @@ function runSim(cardArr){
   return{won:false,probs:counts.map(c=>c/SIMS),avg:Math.round(totalToWin/SIMS)};
 }
 
-function runAllSims(){
-  simCache=cards.map(c=>runSim(c));
-}
+function runAllSims(){simCache=cards.map(c=>runSimForCard(c));}
 
-// --- Render ---
+// Render
 function renderAll(){
   runAllSims();
   renderCardTabs();
@@ -334,59 +415,58 @@ function renderAll(){
 }
 
 function renderCardTabs(){
-  // Find best card by +5 call probability
   let bestIdx=-1,bestProb=-1;
-  simCache.forEach((r,i)=>{
-    if(r&&!r.won){const p=r.probs[2]||0;if(p>bestProb){bestProb=p;bestIdx=i;}}
-  });
-
+  simCache.forEach((r,i)=>{if(r&&!r.won){const p=r.probs[2]||0;if(p>bestProb){bestProb=p;bestIdx=i;}}});
   const div=document.getElementById('cardTabs');
   div.innerHTML='';
-  for(let i=0;i<NUM_CARDS;i++){
+  cards.forEach((_,i)=>{
     const res=simCache[i];
     const isWon=res&&res.won;
     const prob=res?Math.round((res.probs[2]||0)*100):null;
     const tab=document.createElement('div');
     tab.className='card-tab'+(i===activeCard?' active':'')+(isWon?' won':'');
-    tab.onclick=()=>{activeCard=i;renderActiveCard();renderStats();renderCardTabs();renderSummaryStrip();};
-
+    tab.onclick=()=>{activeCard=i;renderActiveCard();renderStats();renderCardTabs();renderSummaryStrip();updateEnterBtn();};
     let badge='';
-    if(isWon) badge='<div class="tab-badge won-badge">WON</div>';
-    else if(i===bestIdx&&bestProb>0) badge='<div class="tab-badge">BEST</div>';
-
-    const probText=res?(isWon?'<span style="color:var(--win)">BINGO!</span>':`${prob}% +5`):'<span style="color:var(--muted)">—</span>';
-    tab.innerHTML=`${badge}<div class="tab-label">CARD ${i+1}</div><div class="tab-prob">${probText}</div>`;
+    if(isWon)badge='<div class="tab-badge won-badge">WON</div>';
+    else if(i===bestIdx&&bestProb>0)badge='<div class="tab-badge">BEST</div>';
+    let removeBtn='';
+    if(cards.length>MIN_CARDS)removeBtn=`<div class="tab-remove" onclick="event.stopPropagation();removeCardAt(${i})">×</div>`;
+    const probText=res?(isWon?'<span style="color:var(--win)">BINGO!</span>':`${prob}% +5`):'<span style="color:var(--muted)">tap to set</span>';
+    tab.innerHTML=`${badge}${removeBtn}<div class="tab-label">CARD ${i+1}</div><div class="tab-prob">${probText}</div>`;
     div.appendChild(tab);
+  });
+  // Add card button
+  if(cards.length<MAX_CARDS){
+    const add=document.createElement('div');
+    add.className='tab-add';add.textContent='+';add.title='Add card';
+    add.onclick=()=>addCard();
+    div.appendChild(add);
   }
 }
 
 function renderSummaryStrip(){
   const div=document.getElementById('summaryStrip');
   div.innerHTML='';
-  for(let i=0;i<NUM_CARDS;i++){
+  cards.forEach((_,i)=>{
     const res=simCache[i];
     const isWon=res&&res.won;
     const prob=res?Math.round((res.probs[2]||0)*100):null;
     const strip=document.createElement('div');
     strip.className='strip-card'+(i===activeCard?' active':'')+(isWon?' won':'');
     const hot=prob!==null&&prob>=30;
-    strip.innerHTML=`<div class="strip-pct${hot||isWon?' hot':''}">${isWon?'WIN':prob!==null?prob+'%':'—'}</div><div class="strip-lbl">+5 CALLS</div>`;
-    strip.onclick=()=>{activeCard=i;renderActiveCard();renderStats();renderCardTabs();renderSummaryStrip();};
+    strip.innerHTML=`<div class="strip-pct${hot||isWon?' hot':''}">${isWon?'WIN':prob!==null?prob+'%':'—'}</div><div class="strip-lbl">CARD ${i+1} +5</div>`;
+    strip.onclick=()=>{activeCard=i;renderActiveCard();renderStats();renderCardTabs();renderSummaryStrip();updateEnterBtn();};
     div.appendChild(strip);
-  }
+  });
 }
 
 function renderActiveCard(){
   const card=cards[activeCard];
   const grid=document.getElementById('cardGrid');
   grid.innerHTML='';
-
-  // Remove old hint
   const oldHint=document.getElementById('enterHintEl');
   if(oldHint)oldHint.remove();
-
   if(enterModes[activeCard]){
-    // Show enter-mode hint
     const hint=document.createElement('div');
     hint.id='enterHintEl';hint.className='enter-hint';
     const filled=card?card.filter((n,i)=>i!==12&&n>0).length:0;
@@ -394,21 +474,17 @@ function renderActiveCard(){
     hint.textContent=complete?'Card complete — tap numbers as called':`Enter card numbers (${filled}/24)`;
     grid.parentNode.insertBefore(hint,grid);
   }
-
   const patternCells=getPatternCells();
   const wonCells=card?getWonCells(card):new Set();
   const cardComplete=card&&card.every((n,i)=>i===12||n>0);
-
   for(let row=0;row<5;row++){
     for(let col=0;col<5;col++){
       const idx=col*5+row;
       const n=card?card[idx]:0;
       const cell=document.createElement('div');
       cell.className='cell';
-
-      if(idx===12){
-        cell.classList.add('free','called');cell.textContent='FREE';
-      } else if(enterModes[activeCard]&&(!cardComplete||n===0)){
+      if(idx===12){cell.classList.add('free','called');cell.textContent='FREE';}
+      else if(enterModes[activeCard]&&(!cardComplete||n===0)){
         if(n>0){cell.textContent=n;cell.style.borderColor='var(--accent)';cell.style.color='var(--accent)';}
         else{cell.classList.add('empty-enter');cell.textContent='+';}
         cell.addEventListener('click',()=>openPicker(idx));
@@ -419,25 +495,22 @@ function renderActiveCard(){
         else if(patternCells&&patternCells.has(idx))cell.classList.add('highlight-pattern');
         if(n>0)cell.addEventListener('click',()=>{
           if(calledSet.has(n))calledSet.delete(n);else calledSet.add(n);
+          autoSeq=[];manualBase=new Set();
+          document.getElementById('callSlider').max=74;
           document.getElementById('callSlider').value=0;
-          autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
           renderAll();
         });
       }
       grid.appendChild(cell);
     }
   }
-
   const mode=MODES.find(m=>m.id===currentMode);
   document.getElementById('patternLabel').textContent=mode?mode.desc:'';
 }
 
 function renderStats(){
   const res=simCache[activeCard];
-  const card=cards[activeCard];
   const isWon=res&&res.won;
-
-  // Win banner
   const banner=document.getElementById('winBanner');
   if(isWon){
     banner.classList.add('show');
@@ -451,35 +524,28 @@ function renderStats(){
     document.getElementById('probNow').className='stat-val';
     document.getElementById('avgNeeded').textContent=res?res.avg:'—';
   }
-
   if(!res){
     document.getElementById('probBars').innerHTML='';
     document.getElementById('lineProgress').innerHTML='<span style="font-size:11px;color:var(--muted);">Enter or randomize card to see stats</span>';
     return;
   }
-
-  // Prob bars
   const thresholds=[1,3,5,10,15,20];
   const barsDiv=document.getElementById('probBars');
   barsDiv.innerHTML='';
   thresholds.forEach((t,ti)=>{
     const pct=isWon?100:Math.round(res.probs[ti]*100);
     const cls=pct>=70?'high':pct<=25?'low':'';
-    const row=document.createElement('div');
-    row.className='prob-row';
+    const row=document.createElement('div');row.className='prob-row';
     row.innerHTML=`<span class="prob-label">+${t} call${t>1?'s':''}</span><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div><span class="prob-pct">${pct}%</span>`;
     barsDiv.appendChild(row);
   });
-
-  // Line progress
-  renderLineProgress(card);
+  renderLineProgress(cards[activeCard]);
 }
 
 function renderLineProgress(card){
   const div=document.getElementById('lineProgress');
   div.innerHTML='';
   if(!card)return;
-
   if(currentMode==='standard'){
     const names=['Row 1','Row 2','Row 3','Row 4','Row 5','Col B','Col I','Col N','Col G','Col O','Diag \\','Diag /'];
     getAllLines().forEach((line,li)=>{
@@ -492,13 +558,10 @@ function renderLineProgress(card){
       div.appendChild(row);
     });
   } else {
-    const pat=getPatternCells();
-    if(!pat)return;
+    const pat=getPatternCells();if(!pat)return;
     const needed=[...pat].filter(i=>i!==12);
     const filled=needed.filter(i=>calledSet.has(card[i])).length;
-    const total=needed.length;
-    const pct=Math.round(filled/total*100);
-    const complete=filled===total;
+    const total=needed.length;const pct=Math.round(filled/total*100);const complete=filled===total;
     const row=document.createElement('div');row.className='line-row';
     const bar=`<div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:${complete?'var(--win)':'var(--accent)'};width:${pct}%;transition:width 0.3s;"></div></div>`;
     row.innerHTML=`<span class="line-name" style="min-width:60px">${MODES.find(m=>m.id===currentMode).label}</span>${bar}<span style="font-size:10px;margin-left:8px;color:${complete?'var(--win)':'var(--muted)'}">${filled}/${total}</span>`;
@@ -507,59 +570,76 @@ function renderLineProgress(card){
 }
 
 function renderCalledBalls(){
-  const div=document.getElementById('calledBalls');
-  div.innerHTML='';
+  const div=document.getElementById('calledBalls');div.innerHTML='';
   document.getElementById('calledCount').textContent=calledSet.size;
-  if(!calledSet.size){div.innerHTML='<span style="font-size:11px;color:var(--muted);">None yet — tap cells or use slider</span>';return;}
+  if(!calledSet.size){div.innerHTML='<span style="font-size:11px;color:var(--muted);">None yet</span>';return;}
   [...calledSet].sort((a,b)=>a-b).forEach(n=>{const b=document.createElement('div');b.className='ball';b.textContent=n;div.appendChild(b);});
 }
 
-// --- Card actions ---
+// Card management
+function addCard(){
+  if(cards.length>=MAX_CARDS)return;
+  cards.push(generateCard());
+  enterModes.push(false);
+  simCache.push(null);
+  activeCard=cards.length-1;
+  document.getElementById('cardCountDisplay').textContent=cards.length;
+  renderAll();
+  updateEnterBtn();
+}
+
+function removeCard(){
+  if(cards.length<=MIN_CARDS)return;
+  removeCardAt(cards.length-1);
+}
+
+function removeCardAt(idx){
+  if(cards.length<=MIN_CARDS)return;
+  cards.splice(idx,1);
+  enterModes.splice(idx,1);
+  simCache.splice(idx,1);
+  if(activeCard>=cards.length)activeCard=cards.length-1;
+  document.getElementById('cardCountDisplay').textContent=cards.length;
+  renderAll();
+  updateEnterBtn();
+}
+
 function randomizeActiveCard(){
   enterModes[activeCard]=false;
   cards[activeCard]=generateCard();
-  calledSet=new Set();autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
-  document.getElementById('callSlider').value=0;
-  document.getElementById('sliderVal').textContent='0 called';
+  resetSlider();
   updateEnterBtn();
   renderAll();
 }
 
 function randomizeAll(){
-  for(let i=0;i<NUM_CARDS;i++){cards[i]=generateCard();enterModes[i]=false;}
-  calledSet=new Set();autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
-  document.getElementById('callSlider').value=0;
-  document.getElementById('sliderVal').textContent='0 called';
+  for(let i=0;i<cards.length;i++){cards[i]=generateCard();enterModes[i]=false;}
+  resetSlider();
   updateEnterBtn();
   renderAll();
 }
 
 function resetCalled(){
-  calledSet=new Set();autoSeq=[];manualBase=new Set();document.getElementById("callSlider").max=74;document.getElementById("callSlider").value=0;
-  document.getElementById('callSlider').value=0;
-  document.getElementById('sliderVal').textContent='0 called';
+  calledSet=new Set();
+  resetSlider();
   renderAll();
 }
 
-// --- Enter mode ---
+function resetSlider(){
+  autoSeq=[];manualBase=new Set();
+  document.getElementById('callSlider').max=74;
+  document.getElementById('callSlider').value=0;
+  document.getElementById('sliderVal').textContent='0 called';
+}
+
+// Enter mode
 function startEnterMode(){
   enterModes[activeCard]=true;
   cards[activeCard]=Array(25).fill(0);
   updateEnterBtn();
   renderActiveCard();
   simCache[activeCard]=null;
-  renderStats();
-  renderCardTabs();
-  renderSummaryStrip();
-}
-
-function updateEnterBtn(){
-  const btn=document.getElementById('enterBtn');
-  if(enterModes[activeCard]){
-    btn.textContent='Cancel Entry';btn.className='btn danger-btn';btn.onclick=cancelEnterMode;
-  } else {
-    btn.textContent='Enter Card';btn.className='btn primary';btn.onclick=startEnterMode;
-  }
+  renderStats();renderCardTabs();renderSummaryStrip();
 }
 
 function cancelEnterMode(){
@@ -569,15 +649,20 @@ function cancelEnterMode(){
   renderAll();
 }
 
-// --- Picker ---
+function updateEnterBtn(){
+  const btn=document.getElementById('enterBtn');
+  if(enterModes[activeCard]){btn.textContent='Cancel';btn.className='btn danger-btn';btn.onclick=cancelEnterMode;}
+  else{btn.textContent='Enter Card';btn.className='btn primary';btn.onclick=startEnterMode;}
+}
+
+// Picker
 let pickerCellIdx=-1;
 function openPicker(idx){
   pickerCellIdx=idx;
   const col=Math.floor(idx/5);
   const[lo,hi]=RANGES[col];
   document.getElementById('pickerTitle').textContent=`${'BINGO'[col]}  —  ${lo} to ${hi}`;
-  const grid=document.getElementById('pickerGrid');
-  grid.innerHTML='';
+  const grid=document.getElementById('pickerGrid');grid.innerHTML='';
   const card=cards[activeCard];
   const usedInCol=new Set();
   for(let r=0;r<5;r++){const i=col*5+r;if(i!==idx&&card[i]>0)usedInCol.add(card[i]);}
@@ -588,9 +673,8 @@ function openPicker(idx){
     btn.addEventListener('click',()=>{
       cards[activeCard][idx]=n;closePicker();
       const complete=cards[activeCard].every((v,i)=>i===12||v>0);
-      if(complete)enterModes[activeCard]=false;
-      updateEnterBtn();
-      renderActiveCard();
+      if(complete){enterModes[activeCard]=false;}
+      updateEnterBtn();renderActiveCard();
       if(complete)renderAll();
     });
     grid.appendChild(btn);
@@ -602,35 +686,157 @@ function openPicker(idx){
     grid.appendChild(clr);
   }
   const ov=document.getElementById('pickerOverlay');
-  ov.style.display='flex';
-  ov.onclick=(e)=>{if(e.target===ov)closePicker();};
+  ov.style.display='flex';ov.onclick=(e)=>{if(e.target===ov)closePicker();};
 }
 function closePicker(){document.getElementById('pickerOverlay').style.display='none';pickerCellIdx=-1;}
 
-// --- Slider ---
+// Slider
 function handleSlider(val){
   const n=parseInt(val);
-  // First touch: snapshot current manual calls and build continuation sequence
   if(autoSeq.length===0){
     manualBase=new Set([...calledSet]);
     const remaining=[];
-    for(let i=1;i<=75;i++) if(!manualBase.has(i)) remaining.push(i);
+    for(let i=1;i<=75;i++)if(!manualBase.has(i))remaining.push(i);
     for(let i=remaining.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[remaining[i],remaining[j]]=[remaining[j],remaining[i]];}
     autoSeq=remaining;
-    // Update slider max to remaining count
     document.getElementById('callSlider').max=autoSeq.length;
   }
-  // Rebuild calledSet = manual base + first n of the continuation sequence
   calledSet=new Set([...manualBase,...autoSeq.slice(0,n)]);
   const total=calledSet.size;
   document.getElementById('sliderVal').textContent=`${total} called (${manualBase.size} manual + ${n} simulated)`;
   renderAll();
 }
 
-// --- Mode buttons ---
+// ── SCAN / PHOTO ──────────────────────────────────────────────────────────
+function getApiKey(){return localStorage.getItem('bingo_api_key')||'';}
+function saveApiKey(v){localStorage.setItem('bingo_api_key',v);updateApiKeyStatus();}
+function toggleApiKeyVis(){
+  const inp=document.getElementById('apiKeyInput');
+  inp.type=inp.type==='password'?'text':'password';
+}
+function updateApiKeyStatus(){
+  const key=getApiKey();
+  const el=document.getElementById('apiKeyStatus');
+  if(el)el.textContent=key?'Set (sk-ant-...'+key.slice(-4)+')':'Not set';
+}
+
+function openScan(){
+  document.getElementById('apiKeyInput').value=getApiKey();
+  document.getElementById('scanStatus').textContent='';
+  document.getElementById('scanBtn').disabled=!currentPhotoBase64;
+  updateApiKeyStatus();
+  document.getElementById('scanOverlay').style.display='flex';
+}
+function closeScan(){
+  document.getElementById('scanOverlay').style.display='none';
+}
+
+function handlePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const dataUrl=e.target.result;
+    currentPhotoBase64=dataUrl.split(',')[1];
+    const img=document.getElementById('previewImg');
+    img.src=dataUrl;img.style.display='block';
+    document.getElementById('scanPlaceholder').style.display='none';
+    document.getElementById('scanBtn').disabled=false;
+    document.getElementById('scanStatus').textContent='Photo ready — tap Extract Numbers';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runScan(){
+  const key=getApiKey();
+  if(!key){document.getElementById('scanStatus').textContent='⚠️ Please enter your API key first.';return;}
+  if(!currentPhotoBase64){document.getElementById('scanStatus').textContent='⚠️ Please choose a photo first.';return;}
+
+  const btn=document.getElementById('scanBtn');
+  btn.disabled=true;
+  document.getElementById('scanStatus').innerHTML='<span class="spinner"></span>Reading card with AI...';
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:512,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:currentPhotoBase64}},
+            {type:'text',text:`This is a Bingo card. Extract all 24 numbers (not the FREE space) in column-major order: all 5 B column numbers top-to-bottom, then all 5 I column numbers top-to-bottom, then N column (4 numbers, skip FREE at row 3), then G column, then O column.
+
+Respond with ONLY a JSON object like this, no other text:
+{"B":[n,n,n,n,n],"I":[n,n,n,n,n],"N":[n,n,n,n],"G":[n,n,n,n,n],"O":[n,n,n,n,n]}
+
+B numbers must be 1-15, I must be 16-30, N must be 31-45 (4 numbers, no FREE), G must be 46-60, O must be 61-75.`}
+          ]
+        }]
+      })
+    });
+
+    if(!resp.ok){
+      const err=await resp.json();
+      throw new Error(err.error?.message||`API error ${resp.status}`);
+    }
+
+    const data=await resp.json();
+    const text=data.content.find(b=>b.type==='text')?.text||'';
+
+    // Parse JSON from response
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error('Could not find JSON in response');
+    const nums=JSON.parse(match[0]);
+
+    // Validate
+    if(!nums.B||!nums.I||!nums.N||!nums.G||!nums.O)throw new Error('Missing columns in response');
+    if(nums.B.length!==5||nums.I.length!==5||nums.N.length!==4||nums.G.length!==5||nums.O.length!==5)
+      throw new Error('Wrong number count per column');
+
+    // Build card array (column-major, FREE at idx 12)
+    const newCard=Array(25).fill(0);
+    ['B','I','G','O'].forEach((col,ci)=>{
+      const colIdx={'B':0,'I':1,'G':3,'O':4}[col];
+      nums[col].forEach((n,row)=>{newCard[colIdx*5+row]=n;});
+    });
+    // N column: 4 numbers, skip row 2 (FREE at idx 12)
+    nums.N.forEach((n,i)=>{
+      const row=i<2?i:i+1; // skip row 2
+      newCard[2*5+row]=n;
+    });
+
+    // Apply to active card
+    cards[activeCard]=newCard;
+    enterModes[activeCard]=false;
+    document.getElementById('scanStatus').innerHTML='<span style="color:var(--win)">✓ Card extracted successfully!</span>';
+    updateEnterBtn();
+    setTimeout(()=>{closeScan();renderAll();},800);
+
+  }catch(err){
+    document.getElementById('scanStatus').innerHTML=`<span style="color:var(--danger)">⚠️ ${err.message}</span>`;
+    btn.disabled=false;
+  }
+}
+
+// Settings
+function openSettings(){
+  updateApiKeyStatus();
+  document.getElementById('cardCountDisplay').textContent=cards.length;
+  document.getElementById('settingsOverlay').style.display='flex';
+  document.getElementById('settingsOverlay').onclick=(e)=>{if(e.target===document.getElementById('settingsOverlay'))closeSettings();};
+}
+function closeSettings(){document.getElementById('settingsOverlay').style.display='none';}
+
+// Mode buttons
 function buildModeButtons(){
-  const scroll=document.getElementById('modeScroll');
-  scroll.innerHTML='';
+  const scroll=document.getElementById('modeScroll');scroll.innerHTML='';
   MODES.forEach(m=>{
     const btn=document.createElement('button');
     btn.className='mode-btn'+(m.id===currentMode?' active':'');
@@ -640,9 +846,17 @@ function buildModeButtons(){
   });
 }
 
-// --- Init ---
-buildModeButtons();
-randomizeAll();
+// Init — start with 3 cards
+function init(){
+  cards=[generateCard(),generateCard(),generateCard()];
+  enterModes=[false,false,false];
+  simCache=[null,null,null];
+  buildModeButtons();
+  renderAll();
+  updateEnterBtn();
+  updateApiKeyStatus();
+}
+init();
 </script>
 </body>
 </html>
