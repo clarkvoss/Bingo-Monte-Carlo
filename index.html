@@ -212,10 +212,10 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
         <span class="sheet-title">📷 SCAN CARD</span>
         <button class="sheet-close" onclick="closeScan()">Cancel</button>
       </div>
-      <div class="api-key-label">GOOGLE GEMINI API KEY (free — stored locally, never shared)</div>
+      <div class="api-key-label">ANTHROPIC API KEY (stored locally, never shared)</div>
       <div class="api-key-row">
-        <input class="api-key-input" type="password" id="geminiKeyInput" placeholder="AIza..." oninput="saveGeminiKey(this.value)">
-        <button class="btn" style="flex:0;white-space:nowrap;" onclick="toggleGeminiKeyVis()">Show</button>
+        <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." oninput="saveApiKey(this.value)">
+        <button class="btn" style="flex:0;white-space:nowrap;" onclick="toggleApiKeyVis()">Show</button>
       </div>
       <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
       <div class="scan-preview" id="scanPreview" onclick="document.getElementById('photoInput').click()">
@@ -228,7 +228,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
         <button class="btn primary" style="flex:2" id="scanBtn" onclick="runScan()" disabled>✨ Extract Numbers</button>
       </div>
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;">
-        Free Gemini API key at <strong style="color:var(--text)">aistudio.google.com</strong> → Get API key. No credit card needed. Your key is saved in your browser only.
+        Get a key at <strong style="color:var(--text)">console.anthropic.com</strong>. Calls go directly from your browser — no server involved. Your key is saved locally only.
       </div>
     </div>
   </div>
@@ -293,7 +293,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
   <div class="info-box">
     <strong>How it works:</strong> 10,000 random game continuations simulated per card. The fraction that win within N calls is your probability.<br><br>
-    <strong>Scan:</strong> Photo → Gemini AI extracts the 24 numbers. Free key at aistudio.google.com (no credit card).<br><br>
+    <strong>Scan:</strong> Photo → Claude AI extracts the 24 numbers. Key from console.anthropic.com. Calls go directly from your browser.<br><br>
     <strong>Cards:</strong> Add up to 6 cards via Settings (⚙️). All cards share called numbers.
   </div>
 </main>
@@ -704,15 +704,15 @@ function handleSlider(val){
 }
 
 // ── SCAN / PHOTO ──────────────────────────────────────────────────────────
-function getGeminiKey(){return localStorage.getItem('bingo_gemini_key')||'';}
-function saveGeminiKey(v){localStorage.setItem('bingo_gemini_key',v);}
-function toggleGeminiKeyVis(){
-  const inp=document.getElementById('geminiKeyInput');
+function getApiKey(){return localStorage.getItem('bingo_api_key')||'';}
+function saveApiKey(v){localStorage.setItem('bingo_api_key',v);}
+function toggleApiKeyVis(){
+  const inp=document.getElementById('apiKeyInput');
   inp.type=inp.type==='password'?'text':'password';
 }
 
 function openScan(){
-  document.getElementById('geminiKeyInput').value=getGeminiKey();
+  document.getElementById('apiKeyInput').value=getApiKey();
   document.getElementById('scanStatus').textContent='';
   document.getElementById('scanBtn').disabled=!currentPhotoBase64;
   document.getElementById('scanOverlay').style.display='flex';
@@ -748,8 +748,8 @@ function setScanError(msg,btn){
 }
 
 async function runScan(){
-  const key=getGeminiKey();
-  if(!key){document.getElementById('scanStatus').textContent='⚠️ Enter your Gemini API key first.';return;}
+  const key=getApiKey();
+  if(!key){document.getElementById('scanStatus').textContent='⚠️ Please enter your API key first.';return;}
   if(!currentPhotoBase64){document.getElementById('scanStatus').textContent='⚠️ Please choose a photo first.';return;}
 
   const btn=document.getElementById('scanBtn');
@@ -757,19 +757,26 @@ async function runScan(){
   setScanStatus('<span class="spinner"></span>Reading card with AI...');
 
   try{
-    const resp=await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key,
-      {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[
-            {inline_data:{mime_type:'image/jpeg',data:currentPhotoBase64}},
-            {text:'This is a Bingo card. Extract all 24 numbers (not the FREE space) in column order top-to-bottom.\n\nRespond with ONLY a JSON object, no other text:\n{"B":[n,n,n,n,n],"I":[n,n,n,n,n],"N":[n,n,n,n],"G":[n,n,n,n,n],"O":[n,n,n,n,n]}\n\nB=1-15, I=16-30, N=31-45 (4 numbers, no FREE), G=46-60, O=61-75.'}
-          ]}]
-        })
-      }
-    );
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:512,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:currentPhotoBase64}},
+            {type:'text',text:'This is a Bingo card. Extract all 24 numbers (not the FREE space) in column-major order: all 5 B column numbers top-to-bottom, then I, then N (4 numbers, skip FREE), then G, then O.\n\nRespond with ONLY a JSON object, no other text:\n{"B":[n,n,n,n,n],"I":[n,n,n,n,n],"N":[n,n,n,n],"G":[n,n,n,n,n],"O":[n,n,n,n,n]}\n\nB=1-15, I=16-30, N=31-45, G=46-60, O=61-75.'}
+          ]
+        }]
+      })
+    });
 
     if(!resp.ok){
       const err=await resp.json();
@@ -777,7 +784,7 @@ async function runScan(){
     }
 
     const data=await resp.json();
-    const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const text=data.content.find(b=>b.type==='text')?.text||'';
     const match=text.match(/\{[\s\S]*\}/);
     if(!match)throw new Error('Could not parse AI response');
     const nums=JSON.parse(match[0]);
