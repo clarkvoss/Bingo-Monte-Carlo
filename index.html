@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Bingo Odds">
 <meta name="theme-color" content="#0f0f14">
 <title>Bingo Monte Carlo</title>
+<script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
 :root{
@@ -212,11 +213,6 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
         <span class="sheet-title">📷 SCAN CARD</span>
         <button class="sheet-close" onclick="closeScan()">Cancel</button>
       </div>
-      <div class="api-key-label">ANTHROPIC API KEY (stored locally, never shared)</div>
-      <div class="api-key-row">
-        <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." oninput="saveApiKey(this.value)">
-        <button class="btn" style="flex:0;white-space:nowrap;" onclick="toggleApiKeyVis()">Show</button>
-      </div>
       <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
       <div class="scan-preview" id="scanPreview" onclick="document.getElementById('photoInput').click()">
         <img id="previewImg" alt="Card preview">
@@ -228,7 +224,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
         <button class="btn primary" style="flex:2" id="scanBtn" onclick="runScan()" disabled>✨ Extract Numbers</button>
       </div>
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;">
-        Requires an Anthropic API key. Get one free at <strong style="color:var(--text)">console.anthropic.com</strong>. Your key is saved in your browser only.
+        OCR runs entirely in your browser — no account or API key required. Good lighting and a flat card give the best results.
       </div>
     </div>
   </div>
@@ -239,10 +235,6 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
       <div class="sheet-header">
         <span class="sheet-title">⚙️ SETTINGS</span>
         <button class="sheet-close" onclick="closeSettings()">Done</button>
-      </div>
-      <div class="settings-row">
-        <div><div class="settings-label">API Key</div><div class="settings-sub" id="apiKeyStatus">Not set</div></div>
-        <button class="btn" style="flex:0;font-size:10px;" onclick="closeSettings();openScan()">Set Key</button>
       </div>
       <div class="settings-row">
         <div><div class="settings-label">Max cards</div><div class="settings-sub">Currently <span id="cardCountDisplay">3</span> cards</div></div>
@@ -297,7 +289,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
   <div class="info-box">
     <strong>How it works:</strong> 10,000 random game continuations simulated per card. The fraction that win within N calls is your probability.<br><br>
-    <strong>Scan:</strong> Photo → Claude AI extracts the 24 numbers automatically. Needs an Anthropic API key.<br><br>
+    <strong>Scan:</strong> Photo → on-device OCR extracts the 24 numbers automatically. No API key needed.<br><br>
     <strong>Cards:</strong> Add up to 6 cards via Settings (⚙️). All cards share called numbers.
   </div>
 </main>
@@ -708,23 +700,9 @@ function handleSlider(val){
 }
 
 // ── SCAN / PHOTO ──────────────────────────────────────────────────────────
-function getApiKey(){return localStorage.getItem('bingo_api_key')||'';}
-function saveApiKey(v){localStorage.setItem('bingo_api_key',v);updateApiKeyStatus();}
-function toggleApiKeyVis(){
-  const inp=document.getElementById('apiKeyInput');
-  inp.type=inp.type==='password'?'text':'password';
-}
-function updateApiKeyStatus(){
-  const key=getApiKey();
-  const el=document.getElementById('apiKeyStatus');
-  if(el)el.textContent=key?'Set (sk-ant-...'+key.slice(-4)+')':'Not set';
-}
-
 function openScan(){
-  document.getElementById('apiKeyInput').value=getApiKey();
   document.getElementById('scanStatus').textContent='';
   document.getElementById('scanBtn').disabled=!currentPhotoBase64;
-  updateApiKeyStatus();
   document.getElementById('scanOverlay').style.display='flex';
 }
 function closeScan(){
@@ -746,88 +724,98 @@ function handlePhoto(input){
   reader.readAsDataURL(file);
 }
 
+function setScanStatus(html){document.getElementById('scanStatus').innerHTML=html;}
+function setScanError(msg,btn){
+  const el=document.getElementById('scanStatus');
+  el.textContent='';
+  const span=document.createElement('span');
+  span.style.color='var(--danger)';
+  span.textContent='⚠️ '+msg;
+  el.appendChild(span);
+  if(btn)btn.disabled=false;
+}
+
 async function runScan(){
-  const key=getApiKey();
-  if(!key){document.getElementById('scanStatus').textContent='⚠️ Please enter your API key first.';return;}
   if(!currentPhotoBase64){document.getElementById('scanStatus').textContent='⚠️ Please choose a photo first.';return;}
 
   const btn=document.getElementById('scanBtn');
   btn.disabled=true;
-  document.getElementById('scanStatus').innerHTML='<span class="spinner"></span>Reading card with AI...';
+  setScanStatus('<span class="spinner"></span>Reading card...');
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-opus-4-5',
-        max_tokens:512,
-        messages:[{
-          role:'user',
-          content:[
-            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:currentPhotoBase64}},
-            {type:'text',text:`This is a Bingo card. Extract all 24 numbers (not the FREE space) in column-major order: all 5 B column numbers top-to-bottom, then all 5 I column numbers top-to-bottom, then N column (4 numbers, skip FREE at row 3), then G column, then O column.
+    // Decode base64 to blob for Tesseract
+    const byteChars=atob(currentPhotoBase64);
+    const byteArr=new Uint8Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++)byteArr[i]=byteChars.charCodeAt(i);
+    const blob=new Blob([byteArr],{type:'image/jpeg'});
 
-Respond with ONLY a JSON object like this, no other text:
-{"B":[n,n,n,n,n],"I":[n,n,n,n,n],"N":[n,n,n,n],"G":[n,n,n,n,n],"O":[n,n,n,n,n]}
-
-B numbers must be 1-15, I must be 16-30, N must be 31-45 (4 numbers, no FREE), G must be 46-60, O must be 61-75.`}
-          ]
-        }]
-      })
+    const result=await Tesseract.recognize(blob,'eng',{
+      logger:m=>{
+        if(m.status==='recognizing text'){
+          setScanStatus('<span class="spinner"></span>Scanning... '+Math.round(m.progress*100)+'%');
+        }
+      }
     });
 
-    if(!resp.ok){
-      const err=await resp.json();
-      throw new Error(err.error?.message||`API error ${resp.status}`);
-    }
+    // Extract numeric words with bounding-box positions
+    const words=result.data.words
+      .map(w=>({
+        n:parseInt(w.text.trim().replace(/[^0-9]/g,'')),
+        x:(w.bbox.x0+w.bbox.x1)/2,
+        y:(w.bbox.y0+w.bbox.y1)/2
+      }))
+      .filter(w=>!isNaN(w.n)&&w.n>=1&&w.n<=75);
 
-    const data=await resp.json();
-    const text=data.content.find(b=>b.type==='text')?.text||'';
+    if(words.length<10)throw new Error('Too few numbers found. Try better lighting or a flatter card.');
 
-    // Parse JSON from response
-    const match=text.match(/\{[\s\S]*\}/);
-    if(!match)throw new Error('Could not find JSON in response');
-    const nums=JSON.parse(match[0]);
+    // Divide image into 5 column zones by x position
+    const xs=words.map(w=>w.x);
+    const minX=Math.min(...xs),maxX=Math.max(...xs),width=(maxX-minX)||1;
+    const zones=[[],[],[],[],[]];
+    words.forEach(w=>{
+      const z=Math.min(4,Math.floor(((w.x-minX)/width)*5));
+      zones[z].push(w);
+    });
 
-    // Validate
-    if(!nums.B||!nums.I||!nums.N||!nums.G||!nums.O)throw new Error('Missing columns in response');
-    if(nums.B.length!==5||nums.I.length!==5||nums.N.length!==4||nums.G.length!==5||nums.O.length!==5)
-      throw new Error('Wrong number count per column');
+    // Sort each zone top-to-bottom and filter to valid range
+    const colRanges=[[1,15],[16,30],[31,45],[46,60],[61,75]];
+    const colNums=zones.map((zone,ci)=>{
+      const[lo,hi]=colRanges[ci];
+      return zone
+        .filter(w=>w.n>=lo&&w.n<=hi)
+        .sort((a,b)=>a.y-b.y)
+        .map(w=>w.n);
+    });
 
-    // Build card array (column-major, FREE at idx 12)
+    // Deduplicate within each column (keep first by y order)
+    colNums.forEach((col,ci)=>{
+      const seen=new Set();
+      colNums[ci]=col.filter(n=>{if(seen.has(n))return false;seen.add(n);return true;});
+    });
+
+    const colNames=['B','I','N','G','O'];
+    const expected=[5,5,4,5,5];
+    const bad=colNames.filter((_,i)=>colNums[i].length!==expected[i]);
+    if(bad.length>0)throw new Error('Column'+(bad.length>1?'s':'')+' '+bad.join(', ')+' read incorrectly. Retake with better lighting.');
+
+    // Build card array column-major, FREE at idx 12
     const newCard=Array(25).fill(0);
-    ['B','I','G','O'].forEach((col,ci)=>{
-      const colIdx={'B':0,'I':1,'G':3,'O':4}[col];
-      nums[col].forEach((n,row)=>{newCard[colIdx*5+row]=n;});
-    });
-    // N column: 4 numbers, skip row 2 (FREE at idx 12)
-    nums.N.forEach((n,i)=>{
-      const row=i<2?i:i+1; // skip row 2
-      newCard[2*5+row]=n;
-    });
+    [0,1,3,4].forEach(ci=>{colNums[ci].forEach((n,row)=>{newCard[ci*5+row]=n;});});
+    colNums[2].forEach((n,i)=>{const row=i<2?i:i+1;newCard[2*5+row]=n;});
 
-    // Apply to active card
     cards[activeCard]=newCard;
     enterModes[activeCard]=false;
-    document.getElementById('scanStatus').innerHTML='<span style="color:var(--win)">✓ Card extracted successfully!</span>';
+    setScanStatus('<span style="color:var(--win)">✓ Card extracted!</span>');
     updateEnterBtn();
     setTimeout(()=>{closeScan();renderAll();},800);
 
   }catch(err){
-    document.getElementById('scanStatus').innerHTML=`<span style="color:var(--danger)">⚠️ ${err.message}</span>`;
-    btn.disabled=false;
+    setScanError(err.message,btn);
   }
 }
 
 // Settings
 function openSettings(){
-  updateApiKeyStatus();
   document.getElementById('cardCountDisplay').textContent=cards.length;
   document.getElementById('settingsOverlay').style.display='flex';
   document.getElementById('settingsOverlay').onclick=(e)=>{if(e.target===document.getElementById('settingsOverlay'))closeSettings();};
@@ -854,7 +842,6 @@ function init(){
   buildModeButtons();
   renderAll();
   updateEnterBtn();
-  updateApiKeyStatus();
 }
 init();
 </script>
