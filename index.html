@@ -786,7 +786,7 @@ async function runScan(){
     });
     await worker.setParameters({
       tessedit_char_whitelist:'0123456789',
-      tessedit_pageseg_mode:'11'  // SPARSE_TEXT — best for grids
+      tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT  // best for scattered grid numbers
     });
 
     const{data}=await worker.recognize(processed);
