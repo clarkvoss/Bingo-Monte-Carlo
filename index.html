@@ -322,6 +322,7 @@ let manualBase=new Set();
 let currentMode='standard';
 let simCache=[];
 let currentPhotoBase64=null;
+let currentPhotoMediaType='image/jpeg';
 
 function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
 function generateCard(){
@@ -726,6 +727,7 @@ function handlePhoto(input){
   const reader=new FileReader();
   reader.onload=e=>{
     const dataUrl=e.target.result;
+    currentPhotoMediaType=dataUrl.split(';')[0].split(':')[1]||'image/jpeg';
     currentPhotoBase64=dataUrl.split(',')[1];
     const img=document.getElementById('previewImg');
     img.src=dataUrl;img.style.display='block';
@@ -771,7 +773,7 @@ async function runScan(){
         messages:[{
           role:'user',
           content:[
-            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:currentPhotoBase64}},
+            {type:'image',source:{type:'base64',media_type:currentPhotoMediaType,data:currentPhotoBase64}},
             {type:'text',text:'This is a Bingo card. Extract all 24 numbers (not the FREE space) in column-major order: all 5 B column numbers top-to-bottom, then I, then N (4 numbers, skip FREE), then G, then O.\n\nRespond with ONLY a JSON object, no other text:\n{"B":[n,n,n,n,n],"I":[n,n,n,n,n],"N":[n,n,n,n],"G":[n,n,n,n,n],"O":[n,n,n,n,n]}\n\nB=1-15, I=16-30, N=31-45, G=46-60, O=61-75.'}
           ]
         }]
