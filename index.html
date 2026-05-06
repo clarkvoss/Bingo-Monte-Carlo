@@ -164,12 +164,18 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
 .info-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:11px;color:var(--muted);line-height:1.7;}
 .info-box strong{color:var(--text);}
+
+/* Voice */
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(79,127,255,0.4)}50%{box-shadow:0 0 0 6px rgba(79,127,255,0)}}
+.icon-btn.listening{background:rgba(79,127,255,0.2);border-color:var(--accent);color:var(--accent);animation:mic-pulse 1.4s ease-in-out infinite;}
+#voiceToast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:10px 22px;font-family:var(--font-display);font-size:22px;letter-spacing:2px;z-index:200;transition:opacity 0.35s;pointer-events:none;white-space:nowrap;}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">BINGO<span>.</span>ODDS</div>
   <div class="header-btns">
+    <div class="icon-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice recognition">🎤</div>
     <div class="icon-btn" onclick="openSettings()" title="Settings">⚙️</div>
   </div>
 </header>
@@ -831,6 +837,125 @@ function buildModeButtons(){
     btn.onclick=()=>{currentMode=m.id;buildModeButtons();renderAll();};
     scroll.appendChild(btn);
   });
+}
+
+// ── VOICE RECOGNITION ─────────────────────────────────────────────────────
+let voiceRecog = null;
+let voiceActive = false;
+
+const WORD_TENS = {twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70};
+const WORD_ONES = {
+  one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,
+  ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,
+  sixteen:16,seventeen:17,eighteen:18,nineteen:19
+};
+
+function parseSpokenNumber(raw) {
+  const t = raw.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+
+  // Digit-first: "47", "B 7", "G 54"
+  const digitMatches = t.match(/\b(7[0-5]|[1-6]\d|[1-9])\b/g);
+  if (digitMatches) {
+    for (const m of digitMatches) {
+      const n = parseInt(m);
+      if (n >= 1 && n <= 75) return n;
+    }
+  }
+
+  // Word numbers: "forty seven", "twenty one", "seven"
+  const words = t.split(/\s+/);
+  for (let i = 0; i < words.length; i++) {
+    if (WORD_TENS[words[i]] !== undefined) {
+      const next = words[i + 1];
+      const n = WORD_ONES[next] ? WORD_TENS[words[i]] + WORD_ONES[next] : WORD_TENS[words[i]];
+      if (n >= 1 && n <= 75) return n;
+    } else if (WORD_ONES[words[i]] !== undefined) {
+      const n = WORD_ONES[words[i]];
+      if (n >= 1 && n <= 75) return n;
+    }
+  }
+  return null;
+}
+
+function callVoiceNumber(n) {
+  if (!n || calledSet.has(n)) return false;
+  calledSet.add(n);
+  autoSeq = []; manualBase = new Set();
+  document.getElementById('callSlider').max = 74;
+  document.getElementById('callSlider').value = 0;
+  renderAll();
+  return true;
+}
+
+function showVoiceToast(msg, color) {
+  let toast = document.getElementById('voiceToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'voiceToast';
+    toast.style.opacity = '0';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.color = color || 'var(--text)';
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
+}
+
+function toggleVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert('Voice recognition is not supported in this browser.\nUse Chrome or Safari.');
+    return;
+  }
+
+  const btn = document.getElementById('voiceBtn');
+
+  if (voiceActive) {
+    voiceActive = false;
+    voiceRecog.stop();
+    btn.classList.remove('listening');
+    btn.textContent = '🎤';
+    showVoiceToast('Voice off', 'var(--muted)');
+    return;
+  }
+
+  voiceRecog = new SR();
+  voiceRecog.continuous = true;
+  voiceRecog.interimResults = false;
+  voiceRecog.lang = 'en-US';
+
+  voiceRecog.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      const transcript = e.results[i][0].transcript.trim();
+      const n = parseSpokenNumber(transcript);
+      if (n && callVoiceNumber(n)) {
+        const colIdx = RANGES.findIndex(([lo, hi]) => n >= lo && n <= hi);
+        const letter = 'BINGO'[colIdx];
+        showVoiceToast(`${letter}${n}`, 'var(--win)');
+      }
+    }
+  };
+
+  voiceRecog.onerror = (e) => {
+    if (e.error === 'no-speech') return;
+    showVoiceToast('Mic error: ' + e.error, 'var(--danger)');
+    voiceActive = false;
+    btn.classList.remove('listening');
+    btn.textContent = '🎤';
+  };
+
+  // Auto-restart so it keeps listening between pauses
+  voiceRecog.onend = () => {
+    if (voiceActive) voiceRecog.start();
+  };
+
+  voiceRecog.start();
+  voiceActive = true;
+  btn.classList.add('listening');
+  btn.textContent = '🎙️';
+  showVoiceToast('Listening…', 'var(--accent)');
 }
 
 // Init — start with 3 cards
