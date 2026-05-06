@@ -928,6 +928,11 @@ function toggleVoice() {
   voiceRecog.onresult = (e) => {
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (!e.results[i].isFinal) continue;
+      const confidence = e.results[i][0].confidence;
+      if (confidence < 0.75) {
+        showVoiceToast('?', 'var(--warn)');
+        continue;
+      }
       const transcript = e.results[i][0].transcript.trim();
       const n = parseSpokenNumber(transcript);
       if (n && callVoiceNumber(n)) {
